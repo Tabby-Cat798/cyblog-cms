@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+/* 全局 Markdown 样式 */
+.prose {
+  font-family: "Noto Sans SC", sans-serif;
+  color: #333; /* 文字颜色 */
+  line-height: 1.8;
+}
+
+/* 1️⃣ 标题样式 */
+.prose h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1a202c;
+  border-bottom: 2px solid #3182ce;
+  padding-bottom: 0.3rem;
+}
+
+.prose h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin-top: 1.5rem;
+}
+
+.prose h3 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.prose h4 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #5a677a;
+}
+
+/* 2️⃣ 段落样式 */
+.prose p {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: #444;
+  margin-bottom: 1rem;
+}
+
+/* 3️⃣ 列表样式 */
+.prose ul {
+  list-style-type: disc;
+  padding-left: 2rem;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 2rem;
+}
+
+/* 4️⃣ 链接样式 */
+.prose a {
+  color: #3182ce;
+  text-decoration: underline;
+  transition: color 0.2s ease-in-out;
+}
+
+.prose a:hover {
+  color: #1e4b85;
+}
+
+/* 5️⃣ 加粗、斜体、删除线 */
+.prose strong {
+  font-weight: bold;
+  color: #222;
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose del {
+  text-decoration: line-through;
+  color: #888;
+}
+
+/* 6️⃣ 代码块 */
+.prose pre {
+  background: #1e1e1e;
+  color: #f8f8f8;
+  font-family: "JetBrains Mono", monospace;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.prose code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* 7️⃣ 引用块 */
+.prose blockquote {
+  border-left: 4px solid #3182ce;
+  padding-left: 1rem;
+  color: #5a677a;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+/* 8️⃣ 分割线 */
+.prose hr {
+  border: none;
+  border-top: 2px solid #ddd;
+  margin: 2rem 0;
+}
+
+/* 9️⃣ 表格 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+}
+
+.prose th {
+  background-color: #f7fafc;
+  font-weight: bold;
+  text-align: left;
+}
+
+.prose tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
