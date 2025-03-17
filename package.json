@@ -9,10 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.6.1",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@tailwindcss/typography": "^0.5.16",
-    "antd": "^5.24.3",
+    "antd": "^5.24.4",
     "formidable": "^3.5.2",
     "highlight.js": "^11.11.1",
+    "mongodb": "^6.14.2",
     "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
