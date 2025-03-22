@@ -101,9 +101,11 @@ export default function Home() {
         {/* 主要内容 */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            {loading ? (
+          {loading ? (
               <div className="flex justify-center items-center h-64">
-                <Spin size="large" tip="加载中..." />
+                <Spin size="large">
+                  <div className="p-8 text-center">加载中...</div>
+                </Spin>
               </div>
             ) : error ? (
               <div className="text-center text-red-500 p-4">
