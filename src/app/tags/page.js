@@ -2,73 +2,198 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
-import { Card, Tag, Input, Button, Popconfirm, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { Card, Table, Input, Button, Popconfirm, message, Form, Modal, Select, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
 
-export default function TagsPage() {
-  // 模拟标签数据
-  const initialTags = [
-    { id: 1, name: 'Next.js', count: 5, color: 'blue' },
-    { id: 2, name: 'React', count: 8, color: 'cyan' },
-    { id: 3, name: 'JavaScript', count: 12, color: 'orange' },
-    { id: 4, name: 'CSS', count: 6, color: 'green' },
-    { id: 5, name: 'Tailwind', count: 4, color: 'purple' },
-    { id: 6, name: '博客', count: 7, color: 'magenta' },
-    { id: 7, name: '教程', count: 9, color: 'red' },
-    { id: 8, name: '前端', count: 15, color: 'volcano' },
-    { id: 9, name: '后端', count: 3, color: 'geekblue' },
-    { id: 10, name: '数据库', count: 2, color: 'lime' },
+export default function UsersPage() {
+  // 模拟用户数据
+  const initialUsers = [
+    { id: 1, username: 'admin', name: '管理员', email: 'admin@example.com', role: 'admin', status: 'active', avatar: null, createdAt: '2023-03-01' },
+    { id: 2, username: 'editor', name: '小明', email: 'editor@example.com', role: 'editor', status: 'active', avatar: null, createdAt: '2023-03-10' },
+    { id: 3, username: 'user1', name: '张三', email: 'user1@example.com', role: 'user', status: 'active', avatar: null, createdAt: '2023-03-15' },
+    { id: 4, username: 'user2', name: '李四', email: 'user2@example.com', role: 'user', status: 'inactive', avatar: null, createdAt: '2023-03-20' },
+    { id: 5, username: 'guest', name: '访客', email: 'guest@example.com', role: 'guest', status: 'active', avatar: null, createdAt: '2023-03-25' },
   ];
 
-  const [tags, setTags] = useState(initialTags);
-  const [inputVisible, setInputVisible] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [editInputIndex, setEditInputIndex] = useState(-1);
-  const [editInputValue, setEditInputValue] = useState('');
+  const [users, setUsers] = useState(initialUsers);
+  const [searchText, setSearchText] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [form] = Form.useForm();
 
-  // 添加新标签
-  const handleAddTag = () => {
-    if (inputValue && !tags.some(tag => tag.name === inputValue)) {
-      const colors = ['blue', 'cyan', 'orange', 'green', 'purple', 'magenta', 'red', 'volcano', 'geekblue', 'lime'];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      
-      const newTag = {
-        id: tags.length + 1,
-        name: inputValue,
-        count: 0,
-        color: randomColor
-      };
-      
-      setTags([...tags, newTag]);
-      setInputVisible(false);
-      setInputValue('');
-      message.success(`标签 "${inputValue}" 已添加`);
-    }
+  // 角色选项
+  const roleOptions = [
+    { value: 'admin', label: '管理员' },
+    { value: 'editor', label: '编辑' },
+    { value: 'user', label: '普通用户' },
+    { value: 'guest', label: '访客' },
+  ];
+
+  // 状态选项
+  const statusOptions = [
+    { value: 'active', label: '正常' },
+    { value: 'inactive', label: '禁用' },
+  ];
+
+  // 打开新增用户模态框
+  const showAddUserModal = () => {
+    setEditingUser(null);
+    form.resetFields();
+    setIsModalVisible(true);
   };
 
-  // 编辑标签
-  const handleEditTag = (index) => {
-    setEditInputIndex(index);
-    setEditInputValue(tags[index].name);
+  // 打开编辑用户模态框
+  const showEditUserModal = (user) => {
+    setEditingUser(user);
+    form.setFieldsValue({
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
+    setIsModalVisible(true);
   };
 
-  // 保存编辑的标签
-  const handleEditInputConfirm = (index) => {
-    const newTags = [...tags];
-    newTags[index].name = editInputValue;
-    setTags(newTags);
-    setEditInputIndex(-1);
-    setEditInputValue('');
-    message.success('标签已更新');
+  // 关闭模态框
+  const handleCancel = () => {
+    setIsModalVisible(false);
   };
 
-  // 删除标签
-  const handleDeleteTag = (index) => {
-    const newTags = [...tags];
-    newTags.splice(index, 1);
-    setTags(newTags);
-    message.success('标签已删除');
+  // 保存用户
+  const handleSaveUser = () => {
+    form.validateFields().then(values => {
+      if (editingUser) {
+        // 编辑现有用户
+        const updatedUsers = users.map(user => 
+          user.id === editingUser.id ? { ...user, ...values } : user
+        );
+        setUsers(updatedUsers);
+        message.success('用户已更新');
+      } else {
+        // 添加新用户
+        const newUser = {
+          id: users.length + 1,
+          ...values,
+          avatar: null,
+          createdAt: new Date().toISOString().split('T')[0]
+        };
+        setUsers([...users, newUser]);
+        message.success('用户已添加');
+      }
+      setIsModalVisible(false);
+    });
   };
+
+  // 删除用户
+  const handleDeleteUser = (userId) => {
+    const updatedUsers = users.filter(user => user.id !== userId);
+    setUsers(updatedUsers);
+    message.success('用户已删除');
+  };
+
+  // 根据搜索文本过滤用户
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchText.toLowerCase()) ||
+    user.name.toLowerCase().includes(searchText.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  // 表格列定义
+  const columns = [
+    {
+      title: '用户名',
+      dataIndex: 'username',
+      key: 'username',
+      render: (text, record) => (
+        <div className="flex items-center">
+          <Avatar 
+            icon={<UserOutlined />} 
+            className="mr-2"
+            src={record.avatar}
+          />
+          {text}
+        </div>
+      ),
+    },
+    {
+      title: '姓名',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: '邮箱',
+      dataIndex: 'email',
+      key: 'email',
+    },
+    {
+      title: '角色',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role) => {
+        const roleMap = {
+          admin: { color: 'blue', label: '管理员' },
+          editor: { color: 'green', label: '编辑' },
+          user: { color: 'cyan', label: '普通用户' },
+          guest: { color: 'orange', label: '访客' },
+        };
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs text-white bg-${roleMap[role]?.color || 'gray'}-500`}>
+            {roleMap[role]?.label || role}
+          </span>
+        );
+      },
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const statusMap = {
+          active: { color: 'green', label: '正常' },
+          inactive: { color: 'red', label: '禁用' },
+        };
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs text-white bg-${statusMap[status]?.color || 'gray'}-500`}>
+            {statusMap[status]?.label || status}
+          </span>
+        );
+      },
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <div className="flex space-x-2">
+          <Button 
+            type="text" 
+            icon={<EditOutlined />} 
+            onClick={() => showEditUserModal(record)}
+            className="text-blue-600 hover:text-blue-800"
+          />
+          <Popconfirm
+            title="确定要删除此用户吗?"
+            description="删除后无法恢复!"
+            onConfirm={() => handleDeleteUser(record.id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button 
+              type="text" 
+              icon={<DeleteOutlined />} 
+              className="text-red-600 hover:text-red-800"
+            />
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -84,120 +209,107 @@ export default function TagsPage() {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
             <Card 
-              title="标签管理" 
+              title="用户管理" 
               extra={
-                !inputVisible ? (
-                  <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />} 
-                    onClick={() => setInputVisible(true)}
-                  >
-                    新建标签
-                  </Button>
-                ) : null
-              }
-              className="shadow-md"
-            >
-              {/* 添加标签输入框 */}
-              {inputVisible && (
-                <div className="mb-4 flex">
+                <div className="flex space-x-4">
                   <Input
-                    type="text"
-                    size="middle"
+                    placeholder="搜索用户"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    prefix={<SearchOutlined />}
                     className="w-64"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onPressEnter={handleAddTag}
-                    placeholder="输入标签名称"
-                    autoFocus
                   />
                   <Button 
                     type="primary" 
-                    icon={<SaveOutlined />} 
-                    onClick={handleAddTag}
-                    className="ml-2"
+                    icon={<PlusOutlined />} 
+                    onClick={showAddUserModal}
                   >
-                    保存
-                  </Button>
-                  <Button 
-                    icon={<CloseOutlined />} 
-                    onClick={() => setInputVisible(false)}
-                    className="ml-2"
-                  >
-                    取消
+                    新增用户
                   </Button>
                 </div>
-              )}
-
-              {/* 标签列表 */}
-              <div className="flex flex-wrap gap-3">
-                {tags.map((tag, index) => {
-                  if (editInputIndex === index) {
-                    // 编辑状态
-                    return (
-                      <div key={tag.id} className="flex items-center">
-                        <Input
-                          size="small"
-                          className="w-24 mr-1"
-                          value={editInputValue}
-                          onChange={(e) => setEditInputValue(e.target.value)}
-                          onPressEnter={() => handleEditInputConfirm(index)}
-                          autoFocus
-                        />
-                        <Button 
-                          size="small" 
-                          icon={<SaveOutlined />} 
-                          onClick={() => handleEditInputConfirm(index)}
-                          className="mr-1"
-                        />
-                        <Button 
-                          size="small" 
-                          icon={<CloseOutlined />} 
-                          onClick={() => setEditInputIndex(-1)}
-                        />
-                      </div>
-                    );
-                  }
-                  
-                  // 显示状态
-                  return (
-                    <div key={tag.id} className="group relative">
-                      <Tag 
-                        color={tag.color} 
-                        className="px-3 py-1 text-sm"
-                      >
-                        {tag.name} ({tag.count})
-                      </Tag>
-                      <div className="absolute top-0 right-0 -mt-2 -mr-2 hidden group-hover:flex">
-                        <Button 
-                          size="small" 
-                          type="text" 
-                          icon={<EditOutlined />} 
-                          onClick={() => handleEditTag(index)}
-                          className="bg-white shadow-sm rounded-full p-1 text-blue-600 hover:text-blue-800 mr-1"
-                        />
-                        <Popconfirm
-                          title="确定要删除这个标签吗?"
-                          onConfirm={() => handleDeleteTag(index)}
-                          okText="是"
-                          cancelText="否"
-                        >
-                          <Button 
-                            size="small" 
-                            type="text" 
-                            icon={<DeleteOutlined />} 
-                            className="bg-white shadow-sm rounded-full p-1 text-red-600 hover:text-red-800"
-                          />
-                        </Popconfirm>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              }
+              className="shadow-md"
+            >
+              <Table 
+                columns={columns} 
+                dataSource={filteredUsers}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showTotal: (total) => `共 ${total} 个用户`
+                }}
+              />
             </Card>
           </div>
         </main>
       </div>
+
+      {/* 用户表单模态框 */}
+      <Modal
+        title={editingUser ? '编辑用户' : '新增用户'}
+        open={isModalVisible}
+        onCancel={handleCancel}
+        onOk={handleSaveUser}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            status: 'active',
+            role: 'user',
+          }}
+        >
+          <Form.Item
+            name="username"
+            label="用户名"
+            rules={[{ required: true, message: '请输入用户名' }]}
+          >
+            <Input placeholder="请输入用户名" />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="姓名"
+            rules={[{ required: true, message: '请输入姓名' }]}
+          >
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="邮箱"
+            rules={[
+              { required: true, message: '请输入邮箱' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input placeholder="请输入邮箱" />
+          </Form.Item>
+          <Form.Item
+            name="role"
+            label="角色"
+            rules={[{ required: true, message: '请选择角色' }]}
+          >
+            <Select options={roleOptions} placeholder="请选择角色" />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态' }]}
+          >
+            <Select options={statusOptions} placeholder="请选择状态" />
+          </Form.Item>
+          {!editingUser && (
+            <Form.Item
+              name="password"
+              label="密码"
+              rules={[{ required: true, message: '请输入密码' }]}
+            >
+              <Input.Password placeholder="请输入密码" />
+            </Form.Item>
+          )}
+        </Form>
+      </Modal>
     </div>
   );
-} 
+}

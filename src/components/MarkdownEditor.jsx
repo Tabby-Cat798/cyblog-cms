@@ -101,6 +101,8 @@ const MarkdownEditor = ({ className = "" }) => {
         content: markdown,
         summary,
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag), // 将逗号分隔的标签字符串转换为数组
+        viewCount: 0, // 初始浏览量为0
+        status: 'published', // 默认状态为已发布
         createdAt: new Date().toISOString(),
       };
 

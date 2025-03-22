@@ -1,48 +1,82 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
-import { Table, Button, Input, Space, Tag } from 'antd';
+import { Table, Button, Input, Space, Tag, Spin, Modal, message } from 'antd';
 import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
 export default function PostsPage() {
+  const router = useRouter();
   const [searchText, setSearchText] = useState('');
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // 模拟文章数据
-  const posts = [
-    { 
-      id: 1, 
-      title: '如何使用Next.js构建现代化博客', 
-      tags: ['Next.js', '博客', '教程'], 
-      status: 'published', 
-      date: '2023-03-15', 
-      views: 245 
-    },
-    { 
-      id: 2, 
-      title: 'Markdown写作技巧与最佳实践', 
-      tags: ['Markdown', '写作'], 
-      status: 'published', 
-      date: '2023-03-10', 
-      views: 189 
-    },
-    { 
-      id: 3, 
-      title: 'React 19新特性详解', 
-      tags: ['React', '前端'], 
-      status: 'draft', 
-      date: '2023-03-05', 
-      views: 0 
-    },
-    { 
-      id: 4, 
-      title: '使用Tailwind CSS构建响应式UI', 
-      tags: ['CSS', 'Tailwind', 'UI'], 
-      status: 'published', 
-      date: '2023-03-01', 
-      views: 178 
-    },
-  ];
+  // 获取文章列表
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/articles');
+      if (!response.ok) {
+        throw new Error('获取文章列表失败');
+      }
+      const data = await response.json();
+      setArticles(data);
+    } catch (err) {
+      console.error('获取文章错误:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 删除文章
+  const handleDelete = (id) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这篇文章吗？此操作不可撤销。',
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await fetch(`/api/articles/${id}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error('删除文章失败');
+          }
+          
+          message.success('文章已成功删除');
+          fetchArticles(); // 重新获取文章列表
+        } catch (err) {
+          console.error('删除文章错误:', err);
+          message.error('删除文章失败: ' + err.message);
+        }
+      },
+    });
+  };
+
+  // 编辑文章
+  const handleEdit = (id) => {
+    router.push(`/editor?id=${id}`);
+  };
+
+  // 格式化日期
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
 
   // 表格列定义
   const columns = [
@@ -60,7 +94,7 @@ export default function PostsPage() {
       key: 'tags',
       render: (tags) => (
         <>
-          {tags.map(tag => (
+          {tags && tags.map(tag => (
             <Tag key={tag} className="mr-1 mb-1">
               {tag}
             </Tag>
@@ -80,15 +114,16 @@ export default function PostsPage() {
     },
     {
       title: '发布日期',
-      dataIndex: 'date',
-      key: 'date',
-      sorter: (a, b) => new Date(a.date) - new Date(b.date),
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: date => formatDate(date),
+      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
     },
     {
       title: '浏览量',
-      dataIndex: 'views',
-      key: 'views',
-      sorter: (a, b) => a.views - b.views,
+      dataIndex: 'viewCount',
+      key: 'viewCount',
+      sorter: (a, b) => a.viewCount - b.viewCount,
     },
     {
       title: '操作',
@@ -99,6 +134,7 @@ export default function PostsPage() {
             type="text" 
             icon={<EditOutlined />} 
             className="text-blue-600 hover:text-blue-800"
+            onClick={() => handleEdit(record._id)}
           >
             编辑
           </Button>
@@ -106,6 +142,7 @@ export default function PostsPage() {
             type="text" 
             icon={<DeleteOutlined />} 
             className="text-red-600 hover:text-red-800"
+            onClick={() => handleDelete(record._id)}
           >
             删除
           </Button>
@@ -150,19 +187,29 @@ export default function PostsPage() {
               </div>
               
               {/* 文章表格 */}
-              <Table 
-                columns={columns} 
-                dataSource={posts} 
-                rowKey="id"
-                pagination={{ 
-                  pageSize: 10,
-                  showTotal: (total) => `共 ${total} 篇文章`
-                }}
-              />
+              {loading ? (
+                <div className="flex justify-center items-center p-8">
+                  <Spin size="large" tip="加载中..." />
+                </div>
+              ) : error ? (
+                <div className="text-center text-red-500 p-8">
+                  加载失败: {error}
+                </div>
+              ) : (
+                <Table 
+                  columns={columns} 
+                  dataSource={articles} 
+                  rowKey="_id"
+                  pagination={{ 
+                    pageSize: 10,
+                    showTotal: (total) => `共 ${total} 篇文章`
+                  }}
+                />
+              )}
             </div>
           </div>
         </main>
       </div>
     </div>
   );
-} 
+}

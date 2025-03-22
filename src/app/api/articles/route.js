@@ -25,6 +25,8 @@ export async function POST(request) {
       summary: body.summary || '',
       tags: body.tags || [],
       content: body.content,
+      viewCount: body.viewCount || 0,
+      status: body.status || 'published',
       createdAt: beijingTime
     };
     
