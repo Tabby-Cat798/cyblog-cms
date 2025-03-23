@@ -38,22 +38,7 @@ const TopBar = () => {
 
       {/* 右侧 - 工具栏 */}
       <div className="flex items-center space-x-4">
-        {/* 帮助按钮 */}
-        <Tooltip title="帮助中心">
-          <QuestionCircleOutlined className="text-xl cursor-pointer text-gray-600 hover:text-blue-500" />
-        </Tooltip>
 
-        {/* 通知按钮 */}
-        <Dropdown
-          menu={{ items: notificationItems }}
-          placement="bottomRight"
-          arrow
-          trigger={['click']}
-        >
-          <Badge count={notifications.length} size="small">
-            <BellOutlined className="text-xl cursor-pointer text-gray-600 hover:text-blue-500" />
-          </Badge>
-        </Dropdown>
 
         {/* 登录按钮 */}
         <LoginButton />

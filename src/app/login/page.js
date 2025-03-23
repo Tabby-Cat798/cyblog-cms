@@ -1,9 +1,10 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { signIn, useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Alert, Spin } from 'antd';
-import { GoogleOutlined, UserOutlined } from '@ant-design/icons';
+import { GoogleOutlined } from '@ant-design/icons';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
@@ -11,14 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // 如果用户已经登录，检查是否有权限
-    if (status === 'authenticated' && session) {
-      checkUserPermission(session.user);
-    }
-  }, [session, status, router]);
-
-  const checkUserPermission = async (user) => {
+  // 使用useCallback包装checkUserPermission函数
+  const checkUserPermission = useCallback(async (user) => {
     try {
       setLoading(true);
       const response = await fetch('/api/auth/check-permission', {
@@ -46,7 +41,14 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, setError, setLoading]);
+
+  useEffect(() => {
+    // 如果用户已经登录，检查是否有权限
+    if (status === 'authenticated' && session) {
+      checkUserPermission(session.user);
+    }
+  }, [session, status, checkUserPermission]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -64,9 +66,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-white text-4xl shadow-sm">
-              <UserOutlined />
-            </div>
+            <Image
+              src="/logo.png"  // 您需要添加您的徽标图片
+              alt="CyBlog Logo"
+              width={80}
+              height={80}
+              className="rounded-full shadow-sm"
+            />
           </div>
           <h1 className="text-2xl font-bold">CyBlog 管理系统</h1>
           <p className="text-gray-500 mt-2">请使用谷歌账号登录</p>
