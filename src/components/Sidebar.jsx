@@ -27,7 +27,7 @@ const Sidebar = () => {
     { key: 'dashboard', icon: <DashboardOutlined />, label: '仪表盘', href: '/' },
     { key: 'posts', icon: <FileTextOutlined />, label: '文章管理', href: '/posts' },
     { key: 'editor', icon: <EditOutlined />, label: '写文章', href: '/editor' },
-    { key: 'tags', icon: <TagsOutlined />, label: '标签管理', href: '/tags' },
+    { key: 'users', icon: <UserOutlined />, label: '用户管理', href: '/users' },
     { key: 'profile', icon: <UserOutlined />, label: '个人资料', href: '/profile' },
     { key: 'settings', icon: <SettingOutlined />, label: '系统设置', href: '/settings' },
   ];
