@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 
 // 使用环境变量中的连接字符串，如果不存在则使用硬编码的连接字符串
-const uri = process.env.MONGODB_URI || 'mongodb://blogs:123456@47.236.143.204:27017/blogs';
+const uri = process.env.MONGODB_URI;
 const options = {};
 
 let client;

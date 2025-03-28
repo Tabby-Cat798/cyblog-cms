@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Input, Button, message } from "antd";
-import { PictureOutlined } from '@ant-design/icons';
+import { Input, Button, message, Upload } from "antd";
+import { PictureOutlined, UploadOutlined } from '@ant-design/icons';
 import MarkdownRenderer from "./MarkdownRenderer";
 const { TextArea } = Input;
 
@@ -12,6 +12,8 @@ const MarkdownEditor = ({ className = "" }) => {
   const [tags, setTags] = useState("");
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [editingArticleId, setEditingArticleId] = useState(null);
   const textAreaRef = useRef(null);
   const initialLoadDone = useRef(false);
 
@@ -23,6 +25,7 @@ const MarkdownEditor = ({ className = "" }) => {
     const savedTitle = sessionStorage.getItem("articleTitle");
     const savedSummary = sessionStorage.getItem("articleSummary");
     const savedTags = sessionStorage.getItem("articleTags");
+    const savedArticleId = sessionStorage.getItem("editingArticleId");
 
     if (savedMarkdown) {
       setMarkdown(savedMarkdown);
@@ -36,6 +39,9 @@ const MarkdownEditor = ({ className = "" }) => {
     if (savedTags) {
       setTags(savedTags);
     }
+    if (savedArticleId) {
+      setEditingArticleId(savedArticleId);
+    }
     
     initialLoadDone.current = true;
   }, []);
@@ -48,7 +54,10 @@ const MarkdownEditor = ({ className = "" }) => {
     sessionStorage.setItem("articleTitle", title);
     sessionStorage.setItem("articleSummary", summary);
     sessionStorage.setItem("articleTags", tags);
-  }, [markdown, title, summary, tags]);
+    if (editingArticleId) {
+      sessionStorage.setItem("editingArticleId", editingArticleId);
+    }
+  }, [markdown, title, summary, tags, editingArticleId]);
 
   // 生成摘要和标签
   const generateSummaryAndTags = async () => {
@@ -100,21 +109,34 @@ const MarkdownEditor = ({ className = "" }) => {
         title,
         content: markdown,
         summary,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag), // 将逗号分隔的标签字符串转换为数组
-        viewCount: 0, // 初始浏览量为0
-        status: 'published', // 默认状态为已发布
-        createdAt: new Date().toISOString(),
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
       };
 
-      console.log("准备发布文章:", articleData);
-      
-      const response = await fetch('/api/articles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(articleData),
-      });
+      let response;
+      if (editingArticleId) {
+        // 更新已有文章
+        response = await fetch(`/api/articles/${editingArticleId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(articleData),
+        });
+      } else {
+        // 创建新文章
+        response = await fetch('/api/articles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...articleData,
+            viewCount: 0,
+            status: 'published',
+            createdAt: new Date().toISOString(),
+          }),
+        });
+      }
       
       const result = await response.json();
       
@@ -122,14 +144,15 @@ const MarkdownEditor = ({ className = "" }) => {
         throw new Error(result.error || result.message || '发布失败');
       }
       
-      console.log("文章发布成功:", result);
-      message.success("文章发布成功");
+      message.success(editingArticleId ? "文章更新成功" : "文章发布成功");
       
-      // 清空表单
+      // 清空表单和编辑状态
       setMarkdown("");
       setTitle("");
       setSummary("");
       setTags("");
+      setEditingArticleId(null);
+      sessionStorage.removeItem("editingArticleId");
     } catch (error) {
       console.error("发布文章失败", error);
       message.error(`发布失败: ${error.message}`);
@@ -138,9 +161,40 @@ const MarkdownEditor = ({ className = "" }) => {
     }
   };
 
-  // 图片上传按钮点击处理函数
-  const handleImageButtonClick = () => {
-    message.info('图片上传功能暂未启用');
+  // 处理图片上传
+  const handleImageUpload = async (file) => {
+    try {
+      setUploading(true);
+      
+      // 创建FormData对象
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // 发送上传请求
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.message || '上传失败');
+      }
+
+      // 在内容末尾插入图片链接
+      const imageMarkdown = `\n![${file.name}](${data.url})`;
+      setMarkdown(prevMarkdown => prevMarkdown + imageMarkdown);
+
+      message.success('图片上传成功');
+      return false; // 阻止默认上传行为
+    } catch (error) {
+      console.error('上传图片失败:', error);
+      message.error(`上传失败: ${error.message}`);
+      return false; // 阻止默认上传行为
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -159,13 +213,19 @@ const MarkdownEditor = ({ className = "" }) => {
 
       {/* 图片上传按钮 */}
       <div className="mb-2">
-        <Button 
-          icon={<PictureOutlined />} 
-          onClick={handleImageButtonClick}
-          className="mb-2"
+        <Upload
+          showUploadList={false}
+          beforeUpload={handleImageUpload}
+          accept="image/*"
         >
-          上传图片
-        </Button>
+          <Button 
+            icon={<UploadOutlined />} 
+            loading={uploading}
+            className="mb-2"
+          >
+            上传图片
+          </Button>
+        </Upload>
       </div>
 
       {/* Markdown编辑器和预览 */}
@@ -229,7 +289,7 @@ const MarkdownEditor = ({ className = "" }) => {
           onClick={publishArticle} 
           loading={publishing}
         >
-          发布文章
+          {editingArticleId ? "更新文章" : "发布文章"}
         </Button>
       </div>
     </div>

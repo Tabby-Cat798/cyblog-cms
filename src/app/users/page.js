@@ -39,9 +39,7 @@ export default function UsersPage() {
   // 角色选项
   const roleOptions = [
     { value: 'admin', label: '管理员' },
-    { value: 'editor', label: '编辑' },
-    { value: 'user', label: '普通用户' },
-    { value: 'guest', label: '访客' },
+    { value: 'user', label: '用户' },
   ];
 
   // 状态选项
@@ -178,9 +176,7 @@ export default function UsersPage() {
       render: (role) => {
         const roleMap = {
           admin: { color: 'blue', label: '管理员' },
-          editor: { color: 'green', label: '编辑' },
-          user: { color: 'cyan', label: '普通用户' },
-          guest: { color: 'orange', label: '访客' },
+          user: { color: 'cyan', label: '用户' },
         };
         return (
           <span className={`px-2 py-1 rounded-full text-xs text-white bg-${roleMap[role]?.color || 'gray'}-500`}>

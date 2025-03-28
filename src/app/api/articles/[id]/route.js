@@ -5,26 +5,14 @@ import { ObjectId } from 'mongodb';
 // 获取单篇文章
 export async function GET(request, { params }) {
   try {
-    const id = params.id;
-    
-    // 验证ObjectId格式
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: '无效的文章ID格式' },
-        { status: 400 }
-      );
-    }
-    
-    // 连接到MongoDB
     const client = await clientPromise;
-    const db = client.db('blogs');
+    const db = client.db('cyblog');
+    const { id } = params;
     
-    // 查找文章
     const article = await db.collection('articles').findOne({
       _id: new ObjectId(id)
     });
     
-    // 如果文章不存在
     if (!article) {
       return NextResponse.json(
         { error: '文章不存在' },
@@ -32,22 +20,11 @@ export async function GET(request, { params }) {
       );
     }
     
-    // 更新阅读量（如果需要的话）
-    await db.collection('articles').updateOne(
-      { _id: new ObjectId(id) },
-      { $inc: { viewCount: 1 } }
-    );
-    
-    // 更新阅读量后的文章对象
-    article.viewCount = (article.viewCount || 0) + 1;
-    
-    // 返回文章
     return NextResponse.json(article);
-    
   } catch (error) {
-    console.error('获取文章详情失败:', error);
+    console.error('获取文章失败:', error);
     return NextResponse.json(
-      { error: '获取文章详情失败', message: error.message },
+      { error: '获取文章失败' },
       { status: 500 }
     );
   }
@@ -56,17 +33,9 @@ export async function GET(request, { params }) {
 // 更新文章
 export async function PUT(request, { params }) {
   try {
-    const id = params.id;
-    
-    // 验证ObjectId格式
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: '无效的文章ID格式' },
-        { status: 400 }
-      );
-    }
-    
-    // 解析请求体
+    const client = await clientPromise;
+    const db = client.db('cyblog');
+    const { id } = params;
     const body = await request.json();
     
     // 验证必填字段
@@ -77,31 +46,20 @@ export async function PUT(request, { params }) {
       );
     }
     
-    // 获取北京时间
-    const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    
-    // 准备更新数据
-    const updateData = {
-      title: body.title,
-      summary: body.summary || '',
-      tags: body.tags || [],
-      content: body.content,
-      status: body.status || 'published',
-      updatedAt: beijingTime
-    };
-    
-    // 连接到MongoDB
-    const client = await clientPromise;
-    const db = client.db('blogs');
-    
-    // 查找并更新文章
+    // 更新文章
     const result = await db.collection('articles').updateOne(
       { _id: new ObjectId(id) },
-      { $set: updateData }
+      {
+        $set: {
+          title: body.title,
+          content: body.content,
+          summary: body.summary || '',
+          tags: body.tags || [],
+          updatedAt: new Date().toISOString(),
+        },
+      }
     );
     
-    // 如果文章不存在
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: '文章不存在' },
@@ -109,16 +67,11 @@ export async function PUT(request, { params }) {
       );
     }
     
-    // 返回成功响应
-    return NextResponse.json({
-      success: true,
-      message: '文章更新成功'
-    });
-    
+    return NextResponse.json({ message: '文章更新成功' });
   } catch (error) {
     console.error('更新文章失败:', error);
     return NextResponse.json(
-      { error: '更新文章失败', message: error.message },
+      { error: '更新文章失败' },
       { status: 500 }
     );
   }
@@ -127,26 +80,14 @@ export async function PUT(request, { params }) {
 // 删除文章
 export async function DELETE(request, { params }) {
   try {
-    const id = params.id;
-    
-    // 验证ObjectId格式
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: '无效的文章ID格式' },
-        { status: 400 }
-      );
-    }
-    
-    // 连接到MongoDB
     const client = await clientPromise;
-    const db = client.db('blogs');
+    const db = client.db('cyblog');
+    const { id } = params;
     
-    // 删除文章
     const result = await db.collection('articles').deleteOne({
       _id: new ObjectId(id)
     });
     
-    // 如果文章不存在
     if (result.deletedCount === 0) {
       return NextResponse.json(
         { error: '文章不存在' },
@@ -154,16 +95,11 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    // 返回成功响应
-    return NextResponse.json({
-      success: true,
-      message: '文章删除成功'
-    });
-    
+    return NextResponse.json({ message: '文章删除成功' });
   } catch (error) {
     console.error('删除文章失败:', error);
     return NextResponse.json(
-      { error: '删除文章失败', message: error.message },
+      { error: '删除文章失败' },
       { status: 500 }
     );
   }
