@@ -3,7 +3,8 @@ import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 // 获取单篇文章
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   try {
     const client = await clientPromise;
     const db = client.db('blogs');
@@ -31,7 +32,8 @@ export async function GET(request, { params }) {
 }
 
 // 更新文章
-export async function PUT(request, { params }) {
+export async function PUT(request, props) {
+  const params = await props.params;
   try {
     const client = await clientPromise;
     const db = client.db('blogs');
@@ -79,7 +81,8 @@ export async function PUT(request, { params }) {
 }
 
 // 删除文章
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   try {
     const client = await clientPromise;
     const db = client.db('blogs');

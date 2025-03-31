@@ -4,7 +4,8 @@ import { ObjectId } from 'mongodb';
 import { hash } from 'bcrypt';
 
 // 获取单个用户
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   try {
     const id = params.id;
     
@@ -47,7 +48,8 @@ export async function GET(request, { params }) {
 }
 
 // 更新用户
-export async function PUT(request, { params }) {
+export async function PUT(request, props) {
+  const params = await props.params;
   try {
     const id = params.id;
     
@@ -136,7 +138,8 @@ export async function PUT(request, { params }) {
 }
 
 // 删除用户
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   try {
     const id = params.id;
     
