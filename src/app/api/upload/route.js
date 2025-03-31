@@ -9,6 +9,9 @@ const client = new OSS({
   bucket: process.env.OSS_BUCKET
 });
 
+// OSS域名，用于构建永久URL
+const OSS_DOMAIN = process.env.OSS_DOMAIN || `https://${process.env.OSS_BUCKET}.${process.env.OSS_REGION}.aliyuncs.com`;
+
 export async function POST(request) {
   try {
     // 验证环境变量
@@ -52,15 +55,30 @@ export async function POST(request) {
 
     try {
       // 上传到OSS
-      const result = await client.put(fileName, buffer);
+      const result = await client.put(fileName, buffer, {
+        headers: {
+          // 设置文件的访问权限为公共读
+          'x-oss-object-acl': 'public-read',
+        }
+      });
 
-      // 使用OSS SDK的signatureUrl方法获取可访问的URL
-      const url = client.signatureUrl(fileName);
+      console.log('OSS上传结果:', result);
 
-      // 返回文件URL
+      // 构建永久URL
+      // 方式1: 使用OSS返回的URL（如果存在）
+      let permanentUrl = result.url;
+      
+      // 方式2: 如果OSS没有返回URL或使用自定义域名，手动构建URL
+      if (!permanentUrl) {
+        permanentUrl = `${OSS_DOMAIN}/${fileName}`;
+      }
+
+      // 返回永久文件URL
       return NextResponse.json({
         success: true,
-        url: url
+        url: permanentUrl,
+        // 也可以返回签名URL作为备用
+        signedUrl: client.signatureUrl(fileName, { expires: 60 * 60 * 24 * 365 }) // 设置为一年过期
       });
     } catch (ossError) {
       console.error('OSS上传错误:', ossError);
