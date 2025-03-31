@@ -27,7 +27,8 @@ export async function POST(request) {
       content: body.content,
       viewCount: body.viewCount || 0,
       status: body.status || 'published',
-      createdAt: beijingTime
+      createdAt: beijingTime,
+      coverImage: body.coverImage || ''
     };
     
     console.log('准备保存文章:', article);

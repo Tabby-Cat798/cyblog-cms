@@ -10,6 +10,7 @@ const MarkdownEditor = ({ className = "" }) => {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [tags, setTags] = useState("");
+  const [coverImage, setCoverImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -25,6 +26,7 @@ const MarkdownEditor = ({ className = "" }) => {
     const savedTitle = sessionStorage.getItem("articleTitle");
     const savedSummary = sessionStorage.getItem("articleSummary");
     const savedTags = sessionStorage.getItem("articleTags");
+    const savedCoverImage = sessionStorage.getItem("articleCoverImage");
     const savedArticleId = sessionStorage.getItem("editingArticleId");
 
     if (savedMarkdown) {
@@ -38,6 +40,9 @@ const MarkdownEditor = ({ className = "" }) => {
     }
     if (savedTags) {
       setTags(savedTags);
+    }
+    if (savedCoverImage) {
+      setCoverImage(savedCoverImage);
     }
     if (savedArticleId) {
       setEditingArticleId(savedArticleId);
@@ -54,10 +59,11 @@ const MarkdownEditor = ({ className = "" }) => {
     sessionStorage.setItem("articleTitle", title);
     sessionStorage.setItem("articleSummary", summary);
     sessionStorage.setItem("articleTags", tags);
+    sessionStorage.setItem("articleCoverImage", coverImage);
     if (editingArticleId) {
       sessionStorage.setItem("editingArticleId", editingArticleId);
     }
-  }, [markdown, title, summary, tags, editingArticleId]);
+  }, [markdown, title, summary, tags, coverImage, editingArticleId]);
 
   // 生成摘要和标签
   const generateSummaryAndTags = async () => {
@@ -110,6 +116,7 @@ const MarkdownEditor = ({ className = "" }) => {
         content: markdown,
         summary,
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        coverImage: coverImage.trim(),
       };
 
       let response;
@@ -151,6 +158,7 @@ const MarkdownEditor = ({ className = "" }) => {
       setTitle("");
       setSummary("");
       setTags("");
+      setCoverImage("");
       setEditingArticleId(null);
       sessionStorage.removeItem("editingArticleId");
     } catch (error) {
@@ -208,6 +216,17 @@ const MarkdownEditor = ({ className = "" }) => {
           placeholder="请输入文章标题"
           className="w-full"
           size="large"
+        />
+      </div>
+
+      {/* 封面图片URL输入 */}
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold mb-2">封面图片URL</h3>
+        <Input
+          value={coverImage}
+          onChange={(e) => setCoverImage(e.target.value)}
+          placeholder="请输入封面图片的URL地址"
+          className="w-full"
         />
       </div>
 

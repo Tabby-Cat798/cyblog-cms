@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
+import '@ant-design/v5-patch-for-react-19';
 import { Table, Button, Input, Space, Tag, Spin, Modal, message } from 'antd';
 import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 

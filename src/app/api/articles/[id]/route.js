@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 export async function GET(request, { params }) {
   try {
     const client = await clientPromise;
-    const db = client.db('cyblog');
+    const db = client.db('blogs');
     const { id } = params;
     
     const article = await db.collection('articles').findOne({
@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const client = await clientPromise;
-    const db = client.db('cyblog');
+    const db = client.db('blogs');
     const { id } = params;
     const body = await request.json();
     
@@ -56,6 +56,7 @@ export async function PUT(request, { params }) {
           summary: body.summary || '',
           tags: body.tags || [],
           updatedAt: new Date().toISOString(),
+          coverImage: body.coverImage || ''
         },
       }
     );
@@ -81,12 +82,25 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const client = await clientPromise;
-    const db = client.db('cyblog');
+    const db = client.db('blogs');
     const { id } = params;
+    
+    console.log(`正在尝试删除文章，ID: ${id}`);
+    
+    // 检查ID格式是否有效
+    if (!ObjectId.isValid(id)) {
+      console.error('无效的ID格式:', id);
+      return NextResponse.json(
+        { error: '无效的文章ID格式' },
+        { status: 400 }
+      );
+    }
     
     const result = await db.collection('articles').deleteOne({
       _id: new ObjectId(id)
     });
+    
+    console.log('删除操作结果:', result);
     
     if (result.deletedCount === 0) {
       return NextResponse.json(
@@ -95,11 +109,14 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    return NextResponse.json({ message: '文章删除成功' });
+    return NextResponse.json({ 
+      success: true,
+      message: '文章删除成功'
+    });
   } catch (error) {
     console.error('删除文章失败:', error);
     return NextResponse.json(
-      { error: '删除文章失败' },
+      { error: '删除文章失败', message: error.message },
       { status: 500 }
     );
   }

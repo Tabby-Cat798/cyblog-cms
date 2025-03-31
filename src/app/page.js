@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import Stats from '../components/Stats';
+import '@ant-design/v5-patch-for-react-19';
 import { FileTextOutlined, TagsOutlined, EyeOutlined, CommentOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import RecentArticles from '../components/RecentArticles';
 import PopularArticles from '../components/PopularArticles';
+
 
 export default function Home() {
   const [dashboardData, setDashboardData] = useState(null);
