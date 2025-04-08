@@ -58,7 +58,11 @@ const LoginButton = () => {
       >
         <div className="flex items-center space-x-2 cursor-pointer">
           <Badge dot={isAdmin} color="gold" offset={[-5, 5]}>
-            <Avatar src={user.image} icon={!user.image && <UserOutlined />} className="cursor-pointer">
+            <Avatar 
+              src={user.image || null} 
+              icon={!user.image && <UserOutlined />} 
+              className="cursor-pointer"
+            >
               {!user.image && user.name ? user.name[0].toUpperCase() : null}
             </Avatar>
           </Badge>

@@ -5,31 +5,55 @@ import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
 import '@ant-design/v5-patch-for-react-19';
 import { Table, Button, Input, Space, Tag, Spin, Modal, message } from 'antd';
-import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined, CommentOutlined } from '@ant-design/icons';
 
 export default function PostsPage() {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [articles, setArticles] = useState([]);
+  const [commentCounts, setCommentCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 获取文章列表
+  // 获取文章列表和评论数
   useEffect(() => {
-    fetchArticles();
+    fetchArticlesAndComments();
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchArticlesAndComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/articles');
-      if (!response.ok) {
+      // 并行请求文章列表和评论数
+      const [articlesResponse, commentsResponse] = await Promise.all([
+        fetch('/api/articles'),
+        fetch('/api/comments/count')
+      ]);
+
+      if (!articlesResponse.ok) {
         throw new Error('获取文章列表失败');
       }
-      const data = await response.json();
-      setArticles(data);
+
+      const articlesData = await articlesResponse.json();
+      console.log('获取到的文章数据:', articlesData);
+      
+      // 如果评论数API请求成功，处理评论数据
+      if (commentsResponse.ok) {
+        const commentsData = await commentsResponse.json();
+        console.log('获取到的评论数据:', commentsData);
+        const commentsMap = {};
+        
+        // 将评论数据转换为映射表
+        commentsData.forEach(item => {
+          commentsMap[item.articleId] = item.count;
+        });
+        
+        console.log('评论数据映射:', commentsMap);
+        setCommentCounts(commentsMap);
+      }
+      
+      setArticles(articlesData);
     } catch (err) {
-      console.error('获取文章错误:', err);
+      console.error('获取数据错误:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -55,7 +79,7 @@ export default function PostsPage() {
           }
           
           message.success('文章已成功删除');
-          fetchArticles(); // 重新获取文章列表
+          fetchArticlesAndComments(); // 重新获取文章列表和评论数
         } catch (err) {
           console.error('删除文章错误:', err);
           message.error('删除文章失败: ' + err.message);
@@ -127,6 +151,16 @@ export default function PostsPage() {
       sorter: (a, b) => a.viewCount - b.viewCount,
     },
     {
+      title: '评论数',
+      key: 'commentCount',
+      render: (_, record) => (
+        <span className="flex items-center">
+          <CommentOutlined className="mr-1" /> {commentCounts[record._id] || 0}
+        </span>
+      ),
+      sorter: (a, b) => (commentCounts[a._id] || 0) - (commentCounts[b._id] || 0),
+    },
+    {
       title: '操作',
       key: 'action',
       render: (_, record) => (
@@ -180,7 +214,7 @@ export default function PostsPage() {
                   <Button 
                     type="primary" 
                     icon={<PlusOutlined />}
-                    href="/editor"
+                    href="/editor?new=true"
                   >
                     新建文章
                   </Button>

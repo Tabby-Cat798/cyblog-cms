@@ -175,8 +175,8 @@ export default function UsersPage() {
       key: 'role',
       render: (role) => {
         const roleMap = {
-          admin: { color: 'blue', label: '管理员' },
-          user: { color: 'cyan', label: '用户' },
+          admin: { color: 'purple', label: '管理员' },
+          user: { color: 'blue', label: '用户' },
         };
         return (
           <span className={`px-2 py-1 rounded-full text-xs text-white bg-${roleMap[role]?.color || 'gray'}-500`}>
@@ -192,7 +192,7 @@ export default function UsersPage() {
       render: (status) => {
         const statusMap = {
           active: { color: 'green', label: '正常' },
-          inactive: { color: 'red', label: '禁用' },
+          inactive: { color: 'orange', label: '禁用' },
         };
         return (
           <span className={`px-2 py-1 rounded-full text-xs text-white bg-${statusMap[status]?.color || 'gray'}-500`}>

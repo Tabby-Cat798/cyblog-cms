@@ -1,4 +1,4 @@
-import { EyeOutlined } from '@ant-design/icons';
+import { EyeOutlined, CommentOutlined } from '@ant-design/icons';
 
 export default function PopularArticles({ articles, formatDate }) {
   return (
@@ -19,6 +19,9 @@ export default function PopularArticles({ articles, formatDate }) {
               <div className="flex mt-2 text-sm text-gray-500">
                 <span className="flex items-center mr-4">
                   <EyeOutlined className="mr-1" /> {post.viewCount || 0} 浏览
+                </span>
+                <span className="flex items-center mr-4">
+                  <CommentOutlined className="mr-1" /> {post.commentCount || 0} 评论
                 </span>
                 <span className="flex items-center">
                   {post.tags?.length || 0} 标签

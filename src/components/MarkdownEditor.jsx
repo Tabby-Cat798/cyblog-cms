@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Input, Button, message, Upload } from "antd";
-import { PictureOutlined, UploadOutlined } from '@ant-design/icons';
+import { Input, Button, message, Upload, Switch, Space, Tooltip } from "antd";
+import { PictureOutlined, UploadOutlined, ClearOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import MarkdownRenderer from "./MarkdownRenderer";
 const { TextArea } = Input;
 
@@ -15,55 +15,95 @@ const MarkdownEditor = ({ className = "" }) => {
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState(null);
+  const [status, setStatus] = useState("published"); // 默认为published状态
   const textAreaRef = useRef(null);
   const initialLoadDone = useRef(false);
 
-  // 从会话存储中加载内容 - 只在组件首次加载时执行
+  // 从本地存储中加载内容 - 只在组件首次加载时执行
   useEffect(() => {
     if (initialLoadDone.current) return;
     
-    const savedMarkdown = sessionStorage.getItem("markdownContent");
-    const savedTitle = sessionStorage.getItem("articleTitle");
-    const savedSummary = sessionStorage.getItem("articleSummary");
-    const savedTags = sessionStorage.getItem("articleTags");
-    const savedCoverImage = sessionStorage.getItem("articleCoverImage");
-    const savedArticleId = sessionStorage.getItem("editingArticleId");
+    // 检查URL是否包含"new=true"参数，如果是，则清空存储
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('new') === 'true') {
+      clearArticleData();
+      initialLoadDone.current = true;
+      return;
+    }
+    
+    const savedMarkdown = localStorage.getItem("markdownContent");
+    const savedTitle = localStorage.getItem("articleTitle");
+    const savedSummary = localStorage.getItem("articleSummary");
+    const savedTags = localStorage.getItem("articleTags");
+    const savedCoverImage = localStorage.getItem("articleCoverImage");
+    const savedArticleId = localStorage.getItem("editingArticleId");
+    const savedStatus = localStorage.getItem("articleStatus");
 
-    if (savedMarkdown) {
-      setMarkdown(savedMarkdown);
-    }
-    if (savedTitle) {
-      setTitle(savedTitle);
-    }
-    if (savedSummary) {
-      setSummary(savedSummary);
-    }
-    if (savedTags) {
-      setTags(savedTags);
-    }
-    if (savedCoverImage) {
-      setCoverImage(savedCoverImage);
-    }
-    if (savedArticleId) {
-      setEditingArticleId(savedArticleId);
-    }
+    if (savedMarkdown) setMarkdown(savedMarkdown);
+    if (savedTitle) setTitle(savedTitle);
+    if (savedSummary) setSummary(savedSummary);
+    if (savedTags) setTags(savedTags);
+    if (savedCoverImage) setCoverImage(savedCoverImage);
+    if (savedArticleId) setEditingArticleId(savedArticleId);
+    if (savedStatus) setStatus(savedStatus);
     
     initialLoadDone.current = true;
   }, []);
 
-  // 保存内容到会话存储
+  // 保存内容到本地存储
   useEffect(() => {
     if (!initialLoadDone.current) return;
     
-    sessionStorage.setItem("markdownContent", markdown);
-    sessionStorage.setItem("articleTitle", title);
-    sessionStorage.setItem("articleSummary", summary);
-    sessionStorage.setItem("articleTags", tags);
-    sessionStorage.setItem("articleCoverImage", coverImage);
+    localStorage.setItem("markdownContent", markdown);
+    localStorage.setItem("articleTitle", title);
+    localStorage.setItem("articleSummary", summary);
+    localStorage.setItem("articleTags", tags);
+    localStorage.setItem("articleCoverImage", coverImage);
+    localStorage.setItem("articleStatus", status);
     if (editingArticleId) {
-      sessionStorage.setItem("editingArticleId", editingArticleId);
+      localStorage.setItem("editingArticleId", editingArticleId);
     }
-  }, [markdown, title, summary, tags, coverImage, editingArticleId]);
+  }, [markdown, title, summary, tags, coverImage, editingArticleId, status]);
+
+  // 清空文章数据
+  const clearArticleData = () => {
+    // 清空组件状态
+    setMarkdown("");
+    setTitle("");
+    setSummary("");
+    setTags("");
+    setCoverImage("");
+    setEditingArticleId(null);
+    setStatus("published"); // 重置为默认发布状态
+    
+    // 清空本地存储
+    localStorage.removeItem("markdownContent");
+    localStorage.removeItem("articleTitle");
+    localStorage.removeItem("articleSummary");
+    localStorage.removeItem("articleTags");
+    localStorage.removeItem("articleCoverImage");
+    localStorage.removeItem("editingArticleId");
+    localStorage.removeItem("articleStatus");
+    
+    message.success("已清空编辑器，可以开始写新文章了");
+  };
+
+  // 确认清空文章
+  const confirmClear = () => {
+    if (markdown || title || summary || tags || coverImage) {
+      if (window.confirm("确定要清空当前编辑的内容吗？此操作不可恢复。")) {
+        clearArticleData();
+      }
+    } else {
+      message.info("编辑器已经是空的了");
+    }
+  };
+
+  // 处理状态变更
+  const handleStatusChange = (checked) => {
+    setStatus(checked ? "published" : "draft");
+    message.info(`文章状态已设置为: ${checked ? "发布" : "草稿"}`);
+  };
 
   // 生成摘要和标签
   const generateSummaryAndTags = async () => {
@@ -117,6 +157,7 @@ const MarkdownEditor = ({ className = "" }) => {
         summary,
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         coverImage: coverImage.trim(),
+        status: status // 添加文章状态
       };
 
       let response;
@@ -139,7 +180,6 @@ const MarkdownEditor = ({ className = "" }) => {
           body: JSON.stringify({
             ...articleData,
             viewCount: 0,
-            status: 'published',
             createdAt: new Date().toISOString(),
           }),
         });
@@ -153,14 +193,11 @@ const MarkdownEditor = ({ className = "" }) => {
       
       message.success(editingArticleId ? "文章更新成功" : "文章发布成功");
       
-      // 清空表单和编辑状态
-      setMarkdown("");
-      setTitle("");
-      setSummary("");
-      setTags("");
-      setCoverImage("");
-      setEditingArticleId(null);
-      sessionStorage.removeItem("editingArticleId");
+      // 清空编辑状态
+      clearArticleData();
+      
+      // 操作成功后跳转到文章管理页面
+      window.location.href = '/posts';
     } catch (error) {
       console.error("发布文章失败", error);
       message.error(`发布失败: ${error.message}`);
@@ -207,16 +244,34 @@ const MarkdownEditor = ({ className = "" }) => {
 
   return (
     <div className={`flex flex-col ${className}`}>
-      {/* 文章标题输入 */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">文章标题</h3>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="请输入文章标题"
-          className="w-full"
-          size="large"
-        />
+      {/* 文章标题输入和状态开关 */}
+      <div className="flex items-end mb-4 space-x-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold mb-2">文章标题</h3>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="请输入文章标题"
+            className="w-full"
+            size="large"
+          />
+        </div>
+        <div className="flex items-center mb-2">
+          <Tooltip title={status === "published" ? "发布" : "草稿"}>
+            <Space>
+              <span className="text-gray-600 mr-2">状态:</span>
+              <Switch
+                checkedChildren={<CheckOutlined />}
+                unCheckedChildren={<CloseOutlined />}
+                checked={status === "published"}
+                onChange={handleStatusChange}
+              />
+              <span className={status === "published" ? "text-green-600" : "text-orange-500"}>
+                {status === "published" ? "发布" : "草稿"}
+              </span>
+            </Space>
+          </Tooltip>
+        </div>
       </div>
 
       {/* 封面图片URL输入 */}
@@ -294,8 +349,15 @@ const MarkdownEditor = ({ className = "" }) => {
         </div>
       </div>
 
-      {/* 操作按钮 */}
+      {/* 操作按钮 - 添加清空按钮 */}
       <div className="flex justify-end space-x-4 mt-4">
+        <Button 
+          type="default" 
+          icon={<ClearOutlined />}
+          onClick={confirmClear}
+        >
+          清空编辑器
+        </Button>
         <Button 
           type="default" 
           onClick={generateSummaryAndTags} 

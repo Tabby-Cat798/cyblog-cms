@@ -44,6 +44,12 @@ export async function GET() {
         .sort({ viewCount: -1 })
         .limit(5)
         .project({ title: 1, summary: 1, createdAt: 1, viewCount: 1, tags: 1 })
+        .toArray(),
+      // 获取最近文章的评论数
+      db.collection('comments')
+        .aggregate([
+          { $group: { _id: '$postId', commentCount: { $sum: 1 } } }
+        ])
         .toArray()
     ]);
     console.timeEnd('parallel-queries');
@@ -56,7 +62,8 @@ export async function GET() {
       viewsAggregationResult,
       tagsAggregationResult,
       recentArticlesResult,
-      popularArticlesResult
+      popularArticlesResult,
+      commentCountsResult
     ] = results;
     
     const totalArticles = totalArticlesResult.status === 'fulfilled' ? totalArticlesResult.value : 0;
@@ -75,6 +82,25 @@ export async function GET() {
     const recentArticles = recentArticlesResult.status === 'fulfilled' ? recentArticlesResult.value : [];
     const popularArticles = popularArticlesResult.status === 'fulfilled' ? popularArticlesResult.value : [];
     
+    // 获取评论数据
+    const commentCounts = commentCountsResult.status === 'fulfilled' ? commentCountsResult.value : [];
+    
+    const commentCountMap = {};
+    commentCounts.forEach(item => {
+      commentCountMap[item._id] = item.commentCount;
+    });
+    
+    // 添加评论数到文章数据中
+    const processArticlesWithComments = (articles) => {
+      return articles.map(article => ({
+        ...article,
+        commentCount: commentCountMap[article._id.toString()] || 0
+      }));
+    };
+    
+    const recentArticlesWithComments = processArticlesWithComments(recentArticles);
+    const popularArticlesWithComments = processArticlesWithComments(popularArticles);
+    
     // 组合统计数据
     const dashboardData = {
       stats: {
@@ -84,8 +110,8 @@ export async function GET() {
         totalViews
       },
       tagStats,
-      recentArticles,
-      popularArticles
+      recentArticles: recentArticlesWithComments,
+      popularArticles: popularArticlesWithComments
     };
     
     console.timeEnd('dashboard-total');

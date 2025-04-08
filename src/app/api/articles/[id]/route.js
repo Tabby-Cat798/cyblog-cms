@@ -58,7 +58,8 @@ export async function PUT(request, props) {
           summary: body.summary || '',
           tags: body.tags || [],
           updatedAt: new Date().toISOString(),
-          coverImage: body.coverImage || ''
+          coverImage: body.coverImage || '',
+          status: body.status || 'published'  // 添加状态字段，默认为已发布
         },
       }
     );
@@ -70,7 +71,10 @@ export async function PUT(request, props) {
       );
     }
     
-    return NextResponse.json({ message: '文章更新成功' });
+    return NextResponse.json({ 
+      message: '文章更新成功',
+      status: body.status
+    });
   } catch (error) {
     console.error('更新文章失败:', error);
     return NextResponse.json(

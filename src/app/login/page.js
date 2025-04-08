@@ -2,8 +2,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { signIn, useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Card, Button, Alert, Spin } from 'antd';
-import { GoogleOutlined } from '@ant-design/icons';
+import { Card, Button, Alert, Spin, Form, Input, Divider } from 'antd';
+import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
 
   // 使用useCallback包装checkUserPermission函数
   const checkUserPermission = useCallback(async (user) => {
@@ -31,7 +32,7 @@ export default function LoginPage() {
         router.push('/');
       } else {
         // 无权限，显示错误信息
-        setError('您没有访问权限。只有管理员可以访问此系统。');
+        setError(data.message || '您没有访问权限。只有管理员可以访问此系统。');
         // 登出
         signOut({ callbackUrl: '/login' });
       }
@@ -61,10 +62,35 @@ export default function LoginPage() {
     }
   };
 
+  const handleCredentialsLogin = async (values) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: values.email,
+        password: values.password,
+      });
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        // 登录成功
+        router.push('/login'); // 触发重定向检查
+      }
+    } catch (err) {
+      console.error('登录失败:', err);
+      setError('登录失败，请稍后再试。');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
       <Card className="w-full max-w-md shadow-lg">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="flex justify-center mb-4">
             <Image
               src="/logo.png"  // 您需要添加您的徽标图片
@@ -75,7 +101,7 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-2xl font-bold">CyBlog 管理系统</h1>
-          <p className="text-gray-500 mt-2">请使用谷歌账号登录</p>
+          <p className="text-gray-500 mt-2">请登录以继续</p>
         </div>
 
         {error && (
@@ -86,22 +112,71 @@ export default function LoginPage() {
             className="mb-6" 
             showIcon 
             closable
+            onClose={() => setError('')}
           />
         )}
 
-        <div className="flex justify-center">
-          <Button
-            type="primary"
-            icon={<GoogleOutlined />}
-            size="large"
-            onClick={handleGoogleLogin}
-            loading={loading}
-            className="w-full h-12 flex items-center justify-center"
+        <Form
+          form={form}
+          name="login-form"
+          initialValues={{ remember: true }}
+          onFinish={handleCredentialsLogin}
+          layout="vertical"
+        >
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: '请输入您的邮箱' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
           >
-            使用谷歌账号登录
-          </Button>
-        </div>
+            <Input 
+              prefix={<MailOutlined />} 
+              placeholder="邮箱" 
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: '请输入您的密码' },
+              { min: 6, message: '密码长度不能少于6个字符' }
+            ]}
+          >
+            <Input.Password 
+              prefix={<LockOutlined />} 
+              placeholder="密码" 
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              className="w-full h-10"
+              size="large"
+            >
+              登录
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <Divider>或</Divider>
+
+        <Button
+          type="default"
+          icon={<GoogleOutlined />}
+          size="large"
+          onClick={handleGoogleLogin}
+          loading={loading}
+          className="w-full h-10 flex items-center justify-center mb-4"
+        >
+          使用谷歌账号登录
+        </Button>
       </Card>
     </div>
   );
-} 
+}

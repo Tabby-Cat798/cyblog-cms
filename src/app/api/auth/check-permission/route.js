@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import clientPromise from '@/lib/mongodb';
 
 export async function POST(request) {
   try {
@@ -13,20 +13,23 @@ export async function POST(request) {
     }
 
     // 连接到 MongoDB
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    const db = client.db(process.env.MONGODB_DB);
+    const client = await clientPromise;
+    const db = client.db('blogs');
     const usersCollection = db.collection('users');
 
     // 查询用户
     const user = await usersCollection.findOne({ email });
-    await client.close();
+    
+    console.log('权限检查:', email, '角色:', user?.role);
 
-    // 检查用户是否存在且是否为管理员
-    if (user && user.permission === 'admin') {
+    // 检查用户是否存在且是否为管理员 (role === 'admin')
+    if (user && user.role === 'admin') {
       return NextResponse.json({ hasPermission: true });
     } else {
-      return NextResponse.json({ hasPermission: false });
+      return NextResponse.json({ 
+        hasPermission: false,
+        message: '您没有管理员权限' 
+      });
     }
   } catch (error) {
     console.error('验证权限时出错:', error);
