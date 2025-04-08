@@ -1,12 +1,13 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import MarkdownEditor from "../../components/MarkdownEditor";
 import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
 import { Spin, message } from 'antd';
 
-export default function EditorPage() {
+// 将使用useSearchParams的逻辑分离到一个新组件
+function EditorContent() {
   const searchParams = useSearchParams();
   const articleId = searchParams.get('id');
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,24 @@ export default function EditorPage() {
   }, [articleId]);
 
   return (
+    <>
+      <h1 className="text-2xl font-bold mb-6">{pageTitle}</h1>
+      
+      {/* 如果是编辑模式并且正在加载，显示加载状态 */}
+      {articleId && loading ? (
+        <div className="flex items-center justify-center h-64">
+          <Spin size="large" tip="加载文章中..." />
+        </div>
+      ) : (
+        <MarkdownEditor />
+      )}
+    </>
+  );
+}
+
+// 主页面组件，添加Suspense边界
+export default function EditorPage() {
+  return (
     <div className="flex h-screen bg-gray-100">
       {/* 侧边栏 */}
       <Sidebar />
@@ -66,16 +85,9 @@ export default function EditorPage() {
         {/* 主要内容 */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">{pageTitle}</h1>
-            
-            {/* 如果是编辑模式并且正在加载，显示加载状态 */}
-            {articleId && loading ? (
-              <div className="flex items-center justify-center h-64">
-                <Spin size="large" tip="加载文章中..." />
-              </div>
-            ) : (
-              <MarkdownEditor />
-            )}
+            <Suspense fallback={<div className="flex items-center justify-center h-64"><Spin size="large" tip="加载中..." /></div>}>
+              <EditorContent />
+            </Suspense>
           </div>
         </main>
       </div>
