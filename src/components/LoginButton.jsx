@@ -10,16 +10,6 @@ const LoginButton = () => {
   // 用户菜单项
   const userMenuItems = [
     {
-      key: 'profile',
-      label: (
-        <div className="flex items-center">
-          <UserOutlined className="mr-2" />
-          个人资料
-        </div>
-      ),
-      onClick: () => window.location.href = '/profile',
-    },
-    {
       key: 'settings',
       label: (
         <div className="flex items-center">

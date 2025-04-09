@@ -1,45 +1,48 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { signIn, useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Card, Button, Alert, Spin, Form, Input, Divider } from 'antd';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, Button, Alert, Spin, Form, Input, Divider, Modal } from 'antd';
 import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import Image from 'next/image';
+
+// 创建一个专门用于获取搜索参数的组件
+function LoginErrorHandler({ setError, setNoPermissionModal }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+      // 如果错误信息是权限相关的，显示无权限弹窗
+      if (errorParam.includes('权限') || errorParam.includes('admin')) {
+        setNoPermissionModal(true);
+      }
+    }
+  }, [searchParams, setError, setNoPermissionModal]);
+  
+  return null;
+}
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [noPermissionModal, setNoPermissionModal] = useState(false);
   const [form] = Form.useForm();
 
   // 使用useCallback包装checkUserPermission函数
   const checkUserPermission = useCallback(async (user) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/auth/check-permission', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: user.email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.hasPermission) {
-        // 有权限，重定向到主页
-        router.push('/');
-      } else {
-        // 无权限，显示错误信息
-        setError(data.message || '您没有访问权限。只有管理员可以访问此系统。');
-        // 登出
-        signOut({ callbackUrl: '/login' });
-      }
+      
+      // 此时用户已通过NextAuth验证，直接跳转到首页
+      console.log('验证通过，跳转到首页');
+      router.push('/');
     } catch (err) {
-      console.error('检查权限失败:', err);
+      console.error('权限检查出错:', err);
       setError('验证权限时出错，请稍后再试。');
-    } finally {
       setLoading(false);
     }
   }, [router, setError, setLoading]);
@@ -52,12 +55,24 @@ export default function LoginPage() {
   }, [session, status, checkUserPermission]);
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
     try {
-      await signIn('google', { callbackUrl: '/login' });
+      // 清除之前的错误信息
+      setError('');
+      setLoading(true);
+      
+      console.log('开始Google登录流程');
+      
+      // 直接使用重定向模式，不等待结果
+      signIn('google', {
+        callbackUrl: '/login'
+      }).catch(err => {
+        console.error('Google登录重定向失败:', err);
+      });
+      
+      // 不要设置错误信息，因为页面会重定向
     } catch (err) {
-      console.error('登录失败:', err);
-      setError('登录失败，请稍后再试。');
+      console.error('Google登录初始化失败:', err);
+      setError('登录初始化失败，请刷新页面重试');
       setLoading(false);
     }
   };
@@ -75,6 +90,10 @@ export default function LoginPage() {
 
       if (result.error) {
         setError(result.error);
+        // 如果错误信息是权限相关的，显示无权限弹窗
+        if (result.error.includes('权限') || result.error.includes('admin')) {
+          setNoPermissionModal(true);
+        }
         setLoading(false);
       } else {
         // 登录成功
@@ -89,6 +108,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
+      {/* 使用Suspense包装搜索参数处理组件 */}
+      <Suspense fallback={null}>
+        <LoginErrorHandler 
+          setError={setError}
+          setNoPermissionModal={setNoPermissionModal}
+        />
+      </Suspense>
+
       <Card className="w-full max-w-md shadow-lg">
         <div className="text-center mb-6">
           <div className="flex justify-center mb-4">
@@ -97,7 +124,7 @@ export default function LoginPage() {
               alt="CyBlog Logo"
               width={80}
               height={80}
-              className="rounded-full shadow-sm"
+              className="rounded-full"
             />
           </div>
           <h1 className="text-2xl font-bold">CyBlog 管理系统</h1>
@@ -177,6 +204,25 @@ export default function LoginPage() {
           使用谷歌账号登录
         </Button>
       </Card>
+
+      {/* 无权限提示弹窗 */}
+      <Modal
+        title="无权限访问"
+        open={noPermissionModal}
+        onOk={() => setNoPermissionModal(false)}
+        onCancel={() => setNoPermissionModal(false)}
+        footer={[
+          <Button key="ok" type="primary" onClick={() => setNoPermissionModal(false)}>
+            我知道了
+          </Button>
+        ]}
+      >
+        <div className="py-4">
+          <p className="text-red-500 font-bold mb-2">您没有权限访问此系统</p>
+          <p>CyBlog管理系统仅限管理员访问。</p>
+          <p className="mt-2">如需访问权限，请联系系统管理员将您的账号升级为管理员权限。</p>
+        </div>
+      </Modal>
     </div>
   );
 }

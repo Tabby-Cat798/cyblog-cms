@@ -12,7 +12,8 @@ import {
   MenuUnfoldOutlined,
   UserOutlined,
   DashboardOutlined,
-  CommentOutlined
+  CommentOutlined,
+  GlobalOutlined
 } from '@ant-design/icons';
 
 const Sidebar = () => {
@@ -29,6 +30,7 @@ const Sidebar = () => {
     { key: 'posts', icon: <FileTextOutlined />, label: '文章管理', href: '/posts' },
     { key: 'editor', icon: <EditOutlined />, label: '写文章', href: '/editor' },
     { key: 'comments', icon: <CommentOutlined />, label: '评论管理', href: '/comments' },
+    { key: 'visitors', icon: <GlobalOutlined />, label: '访客管理', href: '/visitors' },
     { key: 'users', icon: <UserOutlined />, label: '用户管理', href: '/users' },
     { key: 'settings', icon: <SettingOutlined />, label: '系统设置', href: '/settings' },
   ];

@@ -38,6 +38,41 @@ export const UserProvider = ({ children }) => {
     initUserData();
   }, []);
 
+  // 从数据库获取完整的用户信息
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/users/profile');
+      
+      if (!response.ok) {
+        throw new Error('获取用户资料失败');
+      }
+      
+      const userProfile = await response.json();
+      
+      // 更新状态和 localStorage
+      setUser(userProfile);
+      localStorage.setItem('userInfo', JSON.stringify(userProfile));
+      
+      // 设置管理员权限
+      if (userProfile.role === 'admin') {
+        setIsAdmin(true);
+        localStorage.setItem('userPermission', 'admin');
+      } else {
+        setIsAdmin(false);
+        localStorage.removeItem('userPermission');
+      }
+      
+      return userProfile;
+    } catch (error) {
+      console.error('获取用户资料失败:', error);
+      message.error('获取用户资料失败，请重新登录');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 验证用户权限
   const verifyPermission = async (email) => {
     try {
@@ -76,8 +111,8 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const handleSessionChange = async () => {
       if (status === 'authenticated' && session) {
-        // 用户已登录，更新用户信息
-        const userInfo = {
+        // 用户已登录，使用会话中的基本用户信息
+        const sessionUserInfo = {
           id: session.user.id || '',
           name: session.user.name || '',
           email: session.user.email || '',
@@ -85,13 +120,19 @@ export const UserProvider = ({ children }) => {
           provider: session.user.provider || 'google',
         };
         
-        // 更新状态和 localStorage
-        setUser(userInfo);
-        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        // 设置会话中的基本信息
+        setUser(sessionUserInfo);
+        localStorage.setItem('userInfo', JSON.stringify(sessionUserInfo));
         
-        // 验证用户权限
-        if (!isAdmin) {
-          await verifyPermission(userInfo.email);
+        // 设置管理员权限
+        if (session.user.role === 'admin') {
+          setIsAdmin(true);
+          localStorage.setItem('userPermission', 'admin');
+        } else {
+          // 如果会话中没有角色信息，尝试验证权限
+          if (!isAdmin) {
+            await verifyPermission(sessionUserInfo.email);
+          }
         }
       } else if (status === 'unauthenticated') {
         // 用户未登录，清除用户信息
@@ -144,7 +185,8 @@ export const UserProvider = ({ children }) => {
       login, 
       logout, 
       loading, 
-      status 
+      status,
+      refreshUserProfile: fetchUserProfile
     }}>
       {children}
     </UserContext.Provider>

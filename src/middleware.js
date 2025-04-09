@@ -4,6 +4,13 @@ import { getToken } from 'next-auth/jwt';
 // 不需要登录的路径
 const publicPaths = ['/login', '/api/auth'];
 
+// 不需要验证的API路径（公开API）
+const publicApiPaths = [
+  '/api/articles/published',
+  '/api/articles/get',
+  '/api/auth/_log'
+];
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
   
