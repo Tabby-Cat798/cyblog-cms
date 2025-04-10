@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import TopBar from '../../components/TopBar';
@@ -8,8 +8,8 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import EnhancedMarkdownEditor from '../../components/EnhancedMarkdownEditor';
 
-// 主页面组件
-export default function EditorPage() {
+// 包装组件，处理参数和加载文章
+function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const articleId = searchParams.get('id');
@@ -86,49 +86,69 @@ export default function EditorPage() {
   };
 
   return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* 顶部信息栏 */}
+      <TopBar />
+      
+      {/* 主要内容 */}
+      <main className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">
+              {editingArticleId ? "编辑文章" : "创建新文章"}
+            </h1>
+            <Button 
+              onClick={() => router.push('/posts')}
+              icon={<ArrowLeftOutlined />}
+            >
+              返回文章列表
+            </Button>
+          </div>
+          
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Spin size="large" tip="加载中..." />
+            </div>
+          ) : (
+            <EnhancedMarkdownEditor 
+              initialValue={article?.content || ''}
+              initialTitle={article?.title || ''}
+              initialSummary={article?.summary || ''}
+              initialTags={article?.tags ? article.tags.join(',') : ''}
+              initialStatus={article?.status || 'published'}
+              initialCoverImage={article?.coverImage || ''}
+              editingArticleId={editingArticleId}
+              onSave={handleSaveArticle}
+            />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// 主页面组件
+export default function EditorPage() {
+  return (
     <div className="flex h-screen bg-gray-100">
       {/* 侧边栏 */}
       <Sidebar />
       
-      {/* 主内容区域 */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 顶部信息栏 */}
-        <TopBar />
-        
-        {/* 主要内容 */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-800">
-                {editingArticleId ? "编辑文章" : "创建新文章"}
-              </h1>
-              <Button 
-                onClick={() => router.push('/posts')}
-                icon={<ArrowLeftOutlined />}
-              >
-                返回文章列表
-              </Button>
-            </div>
-            
-            {loading ? (
+      {/* 使用Suspense包裹使用useSearchParams的组件 */}
+      <Suspense fallback={
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TopBar />
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow">
               <div className="flex justify-center items-center h-64">
-                <Spin size="large" tip="加载中..." />
+                <Spin size="large" tip="初始化编辑器..." />
               </div>
-            ) : (
-              <EnhancedMarkdownEditor 
-                initialValue={article?.content || ''}
-                initialTitle={article?.title || ''}
-                initialSummary={article?.summary || ''}
-                initialTags={article?.tags ? article.tags.join(',') : ''}
-                initialStatus={article?.status || 'published'}
-                initialCoverImage={article?.coverImage || ''}
-                editingArticleId={editingArticleId}
-                onSave={handleSaveArticle}
-              />
-            )}
-          </div>
-        </main>
-      </div>
+            </div>
+          </main>
+        </div>
+      }>
+        <EditorContent />
+      </Suspense>
     </div>
   );
 } 
