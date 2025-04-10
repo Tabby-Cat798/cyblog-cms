@@ -107,15 +107,21 @@ const MarkdownRenderer = ({ content }) => {
     },
     // 标题渲染
     h1: ({ node, children, ...props }) => {
-      const id = generateId(children.toString());
+      // 确保children有效再调用toString
+      const textContent = children ? (Array.isArray(children) ? children.join('') : children.toString()) : '';
+      const id = generateId(textContent);
       return <h1 id={id} {...props}>{children}</h1>;
     },
     h2: ({ node, children, ...props }) => {
-      const id = generateId(children.toString());
+      // 确保children有效再调用toString
+      const textContent = children ? (Array.isArray(children) ? children.join('') : children.toString()) : '';
+      const id = generateId(textContent);
       return <h2 id={id} {...props}>{children}</h2>;
     },
     h3: ({ node, children, ...props }) => {
-      const id = generateId(children.toString());
+      // 确保children有效再调用toString
+      const textContent = children ? (Array.isArray(children) ? children.join('') : children.toString()) : '';
+      const id = generateId(textContent);
       return <h3 id={id} {...props}>{children}</h3>;
     },
     // 增强图片渲染 - 修复嵌套问题
