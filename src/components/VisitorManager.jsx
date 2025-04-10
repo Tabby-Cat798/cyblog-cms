@@ -56,9 +56,78 @@ const VisitorManager = () => {
   const [countryFilter, setCountryFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [usernameFilter, setUsernameFilter] = useState('');
+  const [articleFilter, setArticleFilter] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
   const [countries, setCountries] = useState([]);
   const [regions, setRegions] = useState([]);
+  const [articles, setArticles] = useState([]);
+
+  // 获取所有筛选项数据的函数
+  const fetchFilterOptions = async () => {
+    try {
+      console.log('获取所有筛选选项数据...');
+      
+      // 获取所有可用的国家和地区
+      const geoResponse = await fetch(`/api/visitors/options?type=geo`);
+      if (geoResponse.ok) {
+        const geoData = await geoResponse.json();
+        setCountries(geoData.countries || []);
+        setRegions(geoData.regions || []);
+        console.log(`加载了 ${geoData.countries?.length || 0} 个国家和 ${geoData.regions?.length || 0} 个地区选项`);
+      }
+      
+      // 添加调试信息
+      console.log('准备获取文章数据...');
+      
+      // 获取所有文章
+      const articlesResponse = await fetch('/api/articles?limit=100&status=published');
+      console.log('文章API响应状态:', articlesResponse.status);
+      
+      if (articlesResponse.ok) {
+        const responseText = await articlesResponse.text();
+        console.log('文章API原始响应:', responseText);
+        
+        try {
+          // 尝试解析JSON
+          const articlesData = JSON.parse(responseText);
+          console.log('文章API解析后的数据:', articlesData);
+          
+          let articlesList = [];
+          
+          // 处理不同的数据格式
+          if (articlesData.articles && Array.isArray(articlesData.articles)) {
+            articlesList = articlesData.articles;
+          } else if (Array.isArray(articlesData)) {
+            articlesList = articlesData;
+          }
+          
+          if (articlesList.length > 0) {
+            const articleOptions = articlesList.map(article => ({
+              id: article._id,
+              title: article.title || '无标题文章'
+            }));
+            
+            console.log(`加载了 ${articleOptions.length} 个文章选项:`, articleOptions);
+            setArticles(articleOptions);
+            
+            return { success: true, count: articleOptions.length };
+          } else {
+            console.warn('文章列表为空');
+            return { success: true, count: 0 };
+          }
+        } catch (parseError) {
+          console.error('解析文章API响应失败:', parseError);
+          return { success: false, error: '解析文章API响应失败' };
+        }
+      } else {
+        console.error('获取文章选项失败，状态码:', articlesResponse.status);
+        return { success: false, error: `API返回错误状态: ${articlesResponse.status}` };
+      }
+    } catch (error) {
+      console.error('获取筛选选项失败:', error);
+      return { success: false, error: error.message };
+    }
+  };
 
   // 获取访客数据
   const fetchVisitors = async (tabKey = activeTab, currentPage = page, currentPageSize = pageSize, dates = dateRange) => {
@@ -90,6 +159,11 @@ const VisitorManager = () => {
         url += `&username=${encodeURIComponent(usernameFilter)}`;
       }
       
+      // 添加文章过滤条件
+      if (articleFilter) {
+        url += `&article=${encodeURIComponent(articleFilter)}`;
+      }
+      
       console.log('请求URL:', url);
       
       const response = await fetch(url);
@@ -106,24 +180,6 @@ const VisitorManager = () => {
       // 直接使用API返回的数据，不进行过滤
       setVisitors(data.visitors);
       setTotal(data.total);
-
-      // 收集所有出现的国家和地区
-      const countriesSet = new Set();
-      const regionsSet = new Set();
-      
-      data.visitors.forEach(visitor => {
-        if (visitor.geoInfo) {
-          if (visitor.geoInfo.country) {
-            countriesSet.add(visitor.geoInfo.country);
-          }
-          if (visitor.geoInfo.region) {
-            regionsSet.add(visitor.geoInfo.region);
-          }
-        }
-      });
-      
-      setCountries(Array.from(countriesSet).sort());
-      setRegions(Array.from(regionsSet).sort());
     } catch (error) {
       console.error('获取访客数据失败:', error);
       message.error('获取访客数据失败: ' + error.message);
@@ -135,7 +191,78 @@ const VisitorManager = () => {
   // 首次加载
   useEffect(() => {
     fetchVisitors();
+    fetchFilterOptions();
   }, []);
+
+  // 手动刷新筛选选项数据
+  const refreshFilterOptions = () => {
+    message.loading('正在刷新筛选选项...', 1);
+    fetchFilterOptions()
+      .then(() => {
+        if (articles.length === 0) {
+          message.warning('文章选项加载为空，请检查文章API配置');
+        } else {
+          message.success(`成功加载 ${articles.length} 个文章选项`);
+        }
+      });
+  };
+
+  // 渲染文章选择框
+  const renderArticleSelector = () => {
+    // 如果没有文章选项，添加刷新按钮和提示
+    if (articles.length === 0) {
+      return (
+        <div>
+          <div className="flex items-center mb-2">
+            <span className="text-sm font-medium">文章</span>
+            <Tooltip title="刷新文章列表">
+              <Button 
+                type="text" 
+                size="small" 
+                icon={<ReloadOutlined />} 
+                onClick={refreshFilterOptions}
+                style={{ marginLeft: 4 }}
+              />
+            </Tooltip>
+          </div>
+          <div className="flex items-center">
+            <Select
+              placeholder="暂无可选文章"
+              style={{ width: 180 }}
+              disabled
+            />
+            <Tooltip title="刷新文章列表">
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={refreshFilterOptions}
+                style={{ marginLeft: 8 }}
+              >刷新文章</Button>
+            </Tooltip>
+          </div>
+        </div>
+      );
+    }
+    
+    // 正常渲染文章选择框
+    return (
+      <div>
+        <div className="mb-1 text-sm font-medium">文章</div>
+        <Select
+          placeholder="选择文章"
+          style={{ width: 220 }}
+          value={articleFilter || undefined}
+          onChange={handleArticleFilterChange}
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          options={articles.map(article => ({ 
+            label: article.title, 
+            value: article.id 
+          }))}
+        />
+      </div>
+    );
+  };
 
   // 处理标签页切换
   const handleTabChange = (key) => {
@@ -189,6 +316,11 @@ const VisitorManager = () => {
     setUsernameFilter(e.target.value);
   };
 
+  // 处理文章过滤变化
+  const handleArticleFilterChange = (value) => {
+    setArticleFilter(value);
+  };
+
   // 应用过滤器
   const applyFilters = () => {
     setPage(1);
@@ -201,6 +333,7 @@ const VisitorManager = () => {
     setCountryFilter('');
     setRegionFilter('');
     setUsernameFilter('');
+    setArticleFilter('');
     setPage(1);
     fetchVisitors(activeTab, 1, pageSize, dateRange);
   };
@@ -225,6 +358,11 @@ const VisitorManager = () => {
       
       if (regionFilter) {
         url += `&region=${encodeURIComponent(regionFilter)}`;
+      }
+      
+      // 添加文章筛选条件（如果有）
+      if (articleFilter) {
+        url += `&article=${encodeURIComponent(articleFilter)}`;
       }
       
       const response = await fetch(url, { method: 'DELETE' });
@@ -489,7 +627,12 @@ const VisitorManager = () => {
               title="删除访客数据"
               description={(
                 <div>
-                  <p>确定要删除选定日期范围内{countryFilter ? `来自 ${countryFilter}` : ''}{regionFilter ? ` ${regionFilter}` : ''}的所有访客数据吗？</p>
+                  <p>确定要删除选定日期范围内
+                    {countryFilter ? `来自 ${countryFilter}` : ''}
+                    {regionFilter ? ` ${regionFilter}` : ''}
+                    {articleFilter ? ` 访问文章《${articles.find(a => a.id === articleFilter)?.title || articleFilter}》` : ''}
+                    的所有访客数据吗？
+                  </p>
                   <p>此操作不可恢复。</p>
                 </div>
               )}
@@ -535,6 +678,8 @@ const VisitorManager = () => {
                     allowClear
                   />
                 </div>
+                
+                {renderArticleSelector()}
                 
                 <div>
                   <div className="mb-1 text-sm font-medium">国家</div>

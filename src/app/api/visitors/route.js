@@ -39,9 +39,10 @@ export async function GET(request) {
     const countryFilter = searchParams.get('country'); // 新增: 国家筛选
     const regionFilter = searchParams.get('region'); // 新增: 省份/地区筛选
     const usernameFilter = searchParams.get('username'); // 新增: 用户名筛选
+    const articleFilter = searchParams.get('article'); // 新增: 文章筛选
     
     console.log('API收到的分页参数:', { page, pageSize, type });
-    console.log('筛选条件:', { ipFilter, countryFilter, regionFilter, usernameFilter });
+    console.log('筛选条件:', { ipFilter, countryFilter, regionFilter, usernameFilter, articleFilter });
     
     // 连接到MongoDB
     const client = await clientPromise;
@@ -131,6 +132,23 @@ export async function GET(request) {
         query.timestamp.$lte = new Date(endDate);
         console.log('查询结束时间:', new Date(endDate).toISOString());
       }
+    }
+    
+    // 根据文章ID筛选
+    if (articleFilter) {
+      // 检查文章ID是否为有效的ObjectId
+      let articleId;
+      try {
+        articleId = new ObjectId(articleFilter);
+      } catch (error) {
+        // 如果不是有效的ObjectId，直接使用原始值
+        articleId = articleFilter;
+      }
+      
+      // 构建path筛选条件，匹配访问该文章的路径
+      // 访问格式通常是 /posts/{articleId}
+      query.path = { $regex: `/posts/${articleFilter}`, $options: 'i' };
+      console.log('按文章ID筛选:', articleFilter);
     }
     
     // 根据用户名筛选 (如果有)
@@ -337,6 +355,7 @@ export async function DELETE(request) {
     const endDate = searchParams.get('endDate');
     const countryFilter = searchParams.get('country'); // 新增: 按国家筛选删除
     const regionFilter = searchParams.get('region'); // 新增: 按省份/地区筛选删除
+    const articleFilter = searchParams.get('article'); // 新增: 按文章筛选删除
     
     if (!startDate || !endDate) {
       return NextResponse.json(
@@ -371,13 +390,19 @@ export async function DELETE(request) {
       deleteQuery['geoInfo.region'] = { $regex: regionFilter, $options: 'i' };
     }
     
+    // 添加文章筛选条件
+    if (articleFilter) {
+      deleteQuery.path = { $regex: `/posts/${articleFilter}`, $options: 'i' };
+    }
+    
     // 删除前计数
     const totalRecords = await db.collection('visitor_logs').countDocuments(deleteQuery);
     
     console.log('删除统计:', {
       时间范围内总记录数: totalRecords,
       国家筛选: countryFilter || '无',
-      地区筛选: regionFilter || '无'
+      地区筛选: regionFilter || '无',
+      文章筛选: articleFilter ? `文章ID: ${articleFilter}` : '无'
     });
     
     // 执行删除
@@ -393,7 +418,8 @@ export async function DELETE(request) {
       },
       filters: {
         country: countryFilter,
-        region: regionFilter
+        region: regionFilter,
+        article: articleFilter
       }
     });
     

@@ -40,7 +40,21 @@ export default function CommentsPage() {
         throw new Error('获取文章列表失败');
       }
       const data = await response.json();
-      setArticles(data);
+      
+      // 处理文章数据 - 适配新的 API 返回格式
+      let articlesArray = [];
+      if (Array.isArray(data)) {
+        // 旧格式：直接是数组
+        articlesArray = data;
+      } else if (data && data.articles && Array.isArray(data.articles)) {
+        // 新格式：{ articles: [...], total: ... }
+        articlesArray = data.articles;
+      } else {
+        console.error('无法识别的文章数据格式:', data);
+        articlesArray = []; // 确保默认是空数组
+      }
+      
+      setArticles(articlesArray);
     } catch (err) {
       console.error('获取文章错误:', err);
       setError(err.message);

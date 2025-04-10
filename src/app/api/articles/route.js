@@ -61,21 +61,50 @@ export async function POST(request) {
 }
 
 // 获取所有文章
-export async function GET() {
+export async function GET(request) {
   try {
+    // 获取请求参数
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const status = searchParams.get('status'); // published, draft, 或 null
+    const tag = searchParams.get('tag');
+    
+    console.log('文章查询参数:', { limit, status, tag });
+    
     // 连接到MongoDB
     const client = await clientPromise;
     const db = client.db('blogs');
     
+    // 构建查询条件
+    const query = {};
+    
+    // 如果指定了状态，添加状态过滤
+    if (status) {
+      query.status = status;
+    }
+    
+    // 如果指定了标签，添加标签过滤
+    if (tag) {
+      query.tags = tag;
+    }
+    
+    console.log('文章查询条件:', query);
+    
     // 获取所有文章，按创建时间降序排序
     const articles = await db
       .collection('articles')
-      .find({})
+      .find(query)
       .sort({ createdAt: -1 })
+      .limit(limit)
       .toArray();
     
+    console.log(`查询到 ${articles.length} 篇文章`);
+    
     // 返回文章列表
-    return NextResponse.json(articles);
+    return NextResponse.json({
+      articles,
+      total: articles.length
+    });
     
   } catch (error) {
     console.error('获取文章列表失败:', error);

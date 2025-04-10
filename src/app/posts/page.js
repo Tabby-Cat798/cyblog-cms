@@ -34,12 +34,23 @@ export default function PostsPage() {
       }
 
       const articlesData = await articlesResponse.json();
-      console.log('获取到的文章数据:', articlesData);
+      
+      // 处理文章数据 - 适配新的 API 返回格式
+      let articlesArray = [];
+      if (Array.isArray(articlesData)) {
+        // 旧格式：直接是数组
+        articlesArray = articlesData;
+      } else if (articlesData && articlesData.articles && Array.isArray(articlesData.articles)) {
+        // 新格式：{ articles: [...], total: ... }
+        articlesArray = articlesData.articles;
+      } else {
+        console.error('无法识别的文章数据格式:', articlesData);
+        articlesArray = []; // 确保默认是空数组
+      }
       
       // 如果评论数API请求成功，处理评论数据
       if (commentsResponse.ok) {
         const commentsData = await commentsResponse.json();
-        console.log('获取到的评论数据:', commentsData);
         const commentsMap = {};
         
         // 将评论数据转换为映射表
@@ -47,11 +58,10 @@ export default function PostsPage() {
           commentsMap[item.articleId] = item.count;
         });
         
-        console.log('评论数据映射:', commentsMap);
         setCommentCounts(commentsMap);
       }
       
-      setArticles(articlesData);
+      setArticles(articlesArray);
     } catch (err) {
       console.error('获取数据错误:', err);
       setError(err.message);

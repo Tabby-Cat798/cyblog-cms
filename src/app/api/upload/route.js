@@ -12,6 +12,9 @@ const client = new OSS({
 // OSS域名，用于构建永久URL
 const OSS_DOMAIN = process.env.OSS_DOMAIN || `https://${process.env.OSS_BUCKET}.${process.env.OSS_REGION}.aliyuncs.com`;
 
+// CDN加速域名，从环境变量读取
+const CDN_DOMAIN = process.env.CDN_DOMAIN || 'https://images.cyblog.fun';
+
 export async function POST(request) {
   try {
     // 验证环境变量
@@ -62,21 +65,20 @@ export async function POST(request) {
         }
       });
 
-      console.log('OSS上传结果:', result);
-
-      // 构建永久URL
-      // 方式1: 使用OSS返回的URL（如果存在）
-      let permanentUrl = result.url;
-      
-      // 方式2: 如果OSS没有返回URL或使用自定义域名，手动构建URL
-      if (!permanentUrl) {
-        permanentUrl = `${OSS_DOMAIN}/${fileName}`;
+      // 构建OSS URL（用于签名URL等后台操作）
+      let ossUrl = result.url;
+      if (!ossUrl) {
+        ossUrl = `${OSS_DOMAIN}/${fileName}`;
       }
+      
+      // 构建CDN加速URL（返回给前端使用）
+      const cdnUrl = `${CDN_DOMAIN}/${fileName}`;
 
-      // 返回永久文件URL
+      // 返回CDN加速URL给前端
       return NextResponse.json({
         success: true,
-        url: permanentUrl,
+        url: cdnUrl,
+        originalUrl: ossUrl,
         // 也可以返回签名URL作为备用
         signedUrl: client.signatureUrl(fileName, { expires: 60 * 60 * 24 * 365 }) // 设置为一年过期
       });
