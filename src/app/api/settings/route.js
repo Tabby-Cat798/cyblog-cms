@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { revalidateFrontend } from '@/lib/revalidate';
 
 // 获取系统设置
 export async function GET() {
@@ -84,6 +85,31 @@ export async function POST(request) {
       { upsert: true } // 如果不存在则创建
     );
     
+    // 获取所有文章以重新验证它们的页面
+    const allArticles = await db.collection('articles').find({}).toArray();
+    
+    // 重新验证首页
+    await revalidateFrontend({ 
+      path: '/',
+      postId: null 
+    });
+    
+    // 重新验证博客列表页
+    await revalidateFrontend({ 
+      path: '/blog',
+      postId: null 
+    });
+    
+    // 重新验证每篇文章的详情页
+    for (const article of allArticles) {
+      if (article.slug) {
+        await revalidateFrontend({ 
+          path: `/blog/${article.slug}`,
+          postId: article._id.toString()
+        });
+      }
+    }
+
     // 返回成功响应
     return NextResponse.json({
       success: true,

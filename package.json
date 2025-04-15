@@ -16,6 +16,7 @@
     "@uiw/react-md-editor": "^4.0.5",
     "ali-oss": "^6.22.0",
     "antd": "^5.24.4",
+    "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "formidable": "^3.5.2",

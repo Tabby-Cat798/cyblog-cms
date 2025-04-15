@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { revalidateFrontend } from '@/lib/revalidate';
 
 export async function POST(request) {
   try {
@@ -44,6 +45,18 @@ export async function POST(request) {
     const result = await db.collection('articles').insertOne(article);
     console.log('文章插入成功:', result);
     
+    // 重新验证首页
+    await revalidateFrontend({ 
+      path: '/',
+      postId: null 
+    });
+    
+    // 重新验证文章列表页
+    await revalidateFrontend({ 
+      path: '/posts',
+      postId: null 
+    });
+
     // 返回成功响应
     return NextResponse.json({
       success: true,

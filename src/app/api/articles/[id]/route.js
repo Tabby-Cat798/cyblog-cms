@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { revalidateFrontend } from '@/lib/revalidate';
 
 // 获取单篇文章
 export async function GET(request, props) {
@@ -71,6 +72,24 @@ export async function PUT(request, props) {
       );
     }
     
+    // 重新验证首页
+    await revalidateFrontend({ 
+      path: '/',
+      postId: null 
+    });
+    
+    // 重新验证文章列表页
+    await revalidateFrontend({ 
+      path: '/posts',
+      postId: null 
+    });
+    
+    // 重新验证文章详情页
+    await revalidateFrontend({ 
+      path: `/posts/${id}`,
+      postId: id 
+    });
+
     return NextResponse.json({ 
       message: '文章更新成功',
       status: body.status
@@ -103,23 +122,34 @@ export async function DELETE(request, props) {
       );
     }
     
-    const result = await db.collection('articles').deleteOne({
-      _id: new ObjectId(id)
-    });
-    
-    console.log('删除操作结果:', result);
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: '文章不存在' },
-        { status: 404 }
-      );
+    // 删除文章前先获取文章信息
+    const article = await db.collection('articles').findOne({ _id: new ObjectId(id) });
+    if (!article) {
+      return NextResponse.json({ error: '文章不存在' }, { status: 404 });
     }
+
+    // 删除文章
+    await db.collection('articles').deleteOne({ _id: new ObjectId(id) });
     
-    return NextResponse.json({ 
-      success: true,
-      message: '文章删除成功'
+    // 重新验证首页
+    await revalidateFrontend({ 
+      path: '/',
+      postId: null 
     });
+    
+    // 重新验证文章列表页
+    await revalidateFrontend({ 
+      path: '/posts',
+      postId: null 
+    });
+    
+    // 重新验证文章详情页
+    await revalidateFrontend({ 
+      path: `/posts/${id}`,
+      postId: id 
+    });
+
+    return NextResponse.json({ message: '文章删除成功' });
   } catch (error) {
     console.error('删除文章失败:', error);
     return NextResponse.json(
