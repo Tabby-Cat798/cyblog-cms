@@ -13,6 +13,15 @@ import {
 import MarkdownRenderer from './MarkdownRenderer';
 import '../../styles/markdown-styles.css'; // 导入您的自定义Markdown样式
 
+// 自定义OpenAI图标组件
+const OpenAIIcon = () => (
+  <span className="anticon">
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+      <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" />
+    </svg>
+  </span>
+);
+
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -148,7 +157,7 @@ const EnhancedMarkdownEditor = ({
       setPublishing(true);
       
       const tagsArray = tags
-        ? tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        ? tags.split(/[,，]/).map(tag => tag.trim()).filter(tag => tag)
         : [];
         
       const articleData = {
@@ -281,44 +290,128 @@ const EnhancedMarkdownEditor = ({
     }
     
     try {
-      // 创建一个简单的自动摘要
-      if (!summary) {
-        // 取文章前100个字符(不包含Markdown语法)作为摘要
-        const plainText = markdown.replace(/[#*`_[\]()>]/g, '');
-        const autoSummary = plainText.substring(0, 100).trim() + (plainText.length > 100 ? '...' : '');
-        setSummary(autoSummary);
-      }
+      message.loading('正在生成摘要和标签...', 0);
       
-      // 如果没有标签，尝试从文章内容提取
-      if (!tags) {
-        // 找出内容中的关键词
-        const contentWords = markdown.toLowerCase()
-          .replace(/[#*`_[\]()>]/g, ' ')
-          .split(/\s+/)
-          .filter(word => word.length > 3)
-          .filter(word => !['this', 'that', 'than', 'with', 'from', 'have', 'what'].includes(word));
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          content: markdown,
+          title: title.trim() || undefined // 如果标题存在则一并发送
+        }),
+      });
+
+      // 关闭加载提示
+      message.destroy();
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || '生成失败');
+      }
+
+      const result = data.result;
+      // 打印GPT返回的原始数据，便于调试
+      console.log('GPT返回的原始数据:', result);
+      
+      // 需要正确解析返回结果，格式是"标签;摘要"或"标签；摘要"，即先标签后摘要
+      if (result.includes(';') || result.includes('；')) {
+        // 同时处理中文分号和英文分号
+        let generatedTags, generatedSummary;
         
-        // 计算词频
-        const wordFreq = {};
-        contentWords.forEach(word => {
-          wordFreq[word] = (wordFreq[word] || 0) + 1;
-        });
+        if (result.includes('；')) {
+          [generatedTags, generatedSummary] = result.split('；', 2).map(item => item.trim());
+        } else {
+          [generatedTags, generatedSummary] = result.split(';', 2).map(item => item.trim());
+        }
         
-        // 获取频率最高的前3个词
-        const tagCandidates = Object.entries(wordFreq)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([word]) => word);
+        // 移除可能的"标签："前缀
+        generatedTags = generatedTags.replace(/^(标签[:：]\s*)/i, '');
         
-        if (tagCandidates.length > 0) {
-          setTags(tagCandidates.join(','));
+        // 移除可能的"摘要："前缀
+        generatedSummary = generatedSummary.replace(/^(摘要[:：]\s*)/i, '');
+        
+        console.log('处理后的标签 (无前缀):', generatedTags);
+        console.log('处理后的摘要 (无前缀):', generatedSummary);
+        
+        // 确保标签中不包含任何分号
+        if (generatedTags.includes(';') || generatedTags.includes('；')) {
+          console.warn('警告：标签中包含分号，已自动移除');
+          generatedTags = generatedTags.replace(/;|；/g, ',');
+        }
+        
+        // 标准化标签分隔符为英文逗号
+        generatedTags = generatedTags.replace(/，/g, ',');
+        
+        // 避免标签结尾有逗号
+        if (generatedTags.endsWith(',')) {
+          generatedTags = generatedTags.slice(0, -1);
+        }
+
+        
+        // 设置到表单
+        setTags(generatedTags);
+        setSummary(generatedSummary);
+      } else {
+        // 如果返回格式不包含分号，尝试其他方式解析
+        // 假设返回的是JSON字符串或包含明确标记的文本
+        if (result.includes('标签') && result.includes('摘要')) {
+          // 尝试提取带标记的内容
+          const tagsMatch = result.match(/标签[：:]\s*(.*?)(?=\s*摘要[：:]|$)/i);
+          const summaryMatch = result.match(/摘要[：:]\s*(.*?)$/i);
+          
+          if (tagsMatch && tagsMatch[1]) setTags(tagsMatch[1].trim());
+          if (summaryMatch && summaryMatch[1]) setSummary(summaryMatch[1].trim());
+        } else {
+          // 无法解析，可能需要单独处理
+          message.warning('无法正确解析生成的内容，请检查控制台日志');
+          console.log('API返回的原始内容:', result);
         }
       }
       
-      message.success('已自动生成摘要和标签');
+      message.success("摘要和标签生成成功");
     } catch (error) {
       console.error('生成摘要和标签失败:', error);
-      message.error('自动生成失败，请手动填写');
+      message.error(`生成失败: ${error.message}`);
+      
+      // 备用方案：如果API调用失败，使用原来的简单算法生成
+      try {
+        // 取文章前100个字符作为摘要
+        if (!summary) {
+          const plainText = markdown.replace(/[#*`_[\]()>]/g, '');
+          const autoSummary = plainText.substring(0, 100).trim() + (plainText.length > 100 ? '...' : '');
+          setSummary(autoSummary);
+        }
+        
+        // 找出内容中的关键词作为标签
+        if (!tags) {
+          const contentWords = markdown.toLowerCase()
+            .replace(/[#*`_[\]()>]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 3)
+            .filter(word => !['this', 'that', 'than', 'with', 'from', 'have', 'what'].includes(word));
+          
+          const wordFreq = {};
+          contentWords.forEach(word => {
+            wordFreq[word] = (wordFreq[word] || 0) + 1;
+          });
+          
+          const tagCandidates = Object.entries(wordFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([word]) => word);
+          
+          if (tagCandidates.length > 0) {
+            setTags(tagCandidates.join(','));
+          }
+        }
+        
+        message.info('已使用备用方法生成摘要和标签');
+      } catch (backupError) {
+        console.error('备用生成方法也失败:', backupError);
+        message.error('自动生成失败，请手动填写');
+      }
     }
   };
   
@@ -454,6 +547,7 @@ const EnhancedMarkdownEditor = ({
       <div className="flex justify-end space-x-4 mt-4">
         <Button 
           onClick={generateSummaryAndTags}
+          icon={<OpenAIIcon />} // 使用自定义的OpenAI图标
         >
           生成摘要和标签
         </Button>
