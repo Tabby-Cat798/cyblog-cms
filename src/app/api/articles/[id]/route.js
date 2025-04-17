@@ -60,7 +60,8 @@ export async function PUT(request, props) {
           tags: body.tags || [],
           updatedAt: new Date().toISOString(),
           coverImage: body.coverImage || '',
-          status: body.status || 'published'  // 添加状态字段，默认为已发布
+          status: body.status || 'published',  // 添加状态字段，默认为已发布
+          type: body.type || 'technology'      // 添加文章类型字段，默认为技术类
         },
       }
     );

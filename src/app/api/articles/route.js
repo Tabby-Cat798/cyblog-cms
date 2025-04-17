@@ -28,6 +28,7 @@ export async function POST(request) {
       content: body.content,
       viewCount: body.viewCount || 0,
       status: body.status || 'published',
+      type: body.type || 'technology',
       createdAt: beijingTime,
       coverImage: body.coverImage || ''
     };

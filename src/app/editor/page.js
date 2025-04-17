@@ -117,6 +117,7 @@ function EditorContent() {
               initialTags={article?.tags ? article.tags.join(',') : ''}
               initialStatus={article?.status || 'published'}
               initialCoverImage={article?.coverImage || ''}
+              initialType={article?.type || 'technology'}
               editingArticleId={editingArticleId}
               onSave={handleSaveArticle}
             />

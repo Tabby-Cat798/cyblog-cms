@@ -9,7 +9,8 @@ import {
   CloseOutlined,
   TagsOutlined,
   FileImageOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons';
 import MarkdownRenderer from './MarkdownRenderer';
 import '../../styles/markdown-styles.css'; // 导入您的自定义Markdown样式
@@ -34,6 +35,7 @@ const EnhancedMarkdownEditor = ({
   initialTags = '',
   initialStatus = 'published',
   initialCoverImage = '',
+  initialType = 'technology',
   editingArticleId = null
 }) => {
   // 状态管理
@@ -43,6 +45,7 @@ const EnhancedMarkdownEditor = ({
   const [tags, setTags] = useState(initialTags);
   const [status, setStatus] = useState(initialStatus);
   const [coverImage, setCoverImage] = useState(initialCoverImage);
+  const [type, setType] = useState(initialType);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -68,7 +71,7 @@ const EnhancedMarkdownEditor = ({
     }
     
     // 如果提供了初始属性值，优先使用这些值
-    if (initialValue || initialTitle || initialSummary || initialTags || initialCoverImage || editingArticleId) {
+    if (initialValue || initialTitle || initialSummary || initialTags || initialCoverImage || initialType || editingArticleId) {
       // 使用传入的初始值
       setMarkdown(initialValue);
       setTitle(initialTitle);
@@ -76,6 +79,7 @@ const EnhancedMarkdownEditor = ({
       setTags(initialTags);
       setCoverImage(initialCoverImage);
       setStatus(initialStatus);
+      setType(initialType);
       setEditingId(editingArticleId);
       
       // 同时也更新localStorage
@@ -85,6 +89,7 @@ const EnhancedMarkdownEditor = ({
       localStorage.setItem("articleTags", initialTags);
       localStorage.setItem("articleCoverImage", initialCoverImage);
       localStorage.setItem("articleStatus", initialStatus);
+      localStorage.setItem("articleType", initialType);
       if (editingArticleId) {
         localStorage.setItem("editingArticleId", editingArticleId);
       }
@@ -97,6 +102,7 @@ const EnhancedMarkdownEditor = ({
       const savedCoverImage = localStorage.getItem("articleCoverImage");
       const savedArticleId = localStorage.getItem("editingArticleId");
       const savedStatus = localStorage.getItem("articleStatus");
+      const savedType = localStorage.getItem("articleType");
 
       if (savedMarkdown) setMarkdown(savedMarkdown);
       if (savedTitle) setTitle(savedTitle);
@@ -105,10 +111,11 @@ const EnhancedMarkdownEditor = ({
       if (savedCoverImage) setCoverImage(savedCoverImage);
       if (savedArticleId) setEditingId(savedArticleId);
       if (savedStatus) setStatus(savedStatus);
+      if (savedType) setType(savedType);
     }
     
     initialLoadDone.current = true;
-  }, [initialValue, initialTitle, initialSummary, initialTags, initialCoverImage, initialStatus, editingArticleId]);
+  }, [initialValue, initialTitle, initialSummary, initialTags, initialCoverImage, initialStatus, initialType, editingArticleId]);
 
   // 保存内容到本地存储
   useEffect(() => {
@@ -120,13 +127,14 @@ const EnhancedMarkdownEditor = ({
     localStorage.setItem("articleTags", tags);
     localStorage.setItem("articleCoverImage", coverImage);
     localStorage.setItem("articleStatus", status);
+    localStorage.setItem("articleType", type);
     if (editingId) {
       localStorage.setItem("editingArticleId", editingId);
     }
     
     // 内容变化时设置未保存状态
     setHasUnsavedChanges(true);
-  }, [markdown, title, summary, tags, coverImage, status, editingId]);
+  }, [markdown, title, summary, tags, coverImage, status, type, editingId]);
   
   // 监听内容变化设置未保存状态
   useEffect(() => {
@@ -168,6 +176,7 @@ const EnhancedMarkdownEditor = ({
         tags: tagsArray,
         status,
         coverImage: coverImage || '',
+        type,
       };
       
       // 如果有编辑中的文章ID，则更新文章而非创建新文章
@@ -202,6 +211,7 @@ const EnhancedMarkdownEditor = ({
     setCoverImage("");
     setEditingId(null);
     setStatus("published"); // 重置为默认发布状态
+    setType("technology"); // 重置为默认文章类型
     
     // 清空本地存储
     localStorage.removeItem("markdownContent");
@@ -211,6 +221,7 @@ const EnhancedMarkdownEditor = ({
     localStorage.removeItem("articleCoverImage");
     localStorage.removeItem("editingArticleId");
     localStorage.removeItem("articleStatus");
+    localStorage.removeItem("articleType"); // 清除文章类型
     
     message.success("已清空编辑器，可以开始写新文章了");
   };
@@ -457,6 +468,12 @@ const EnhancedMarkdownEditor = ({
     });
   };
   
+  // 处理类型变更
+  const handleTypeChange = (value) => {
+    setType(value);
+    message.info(`文章类型已设置为: ${value}`);
+  };
+  
   return (
     <div className="flex flex-col space-y-4">
       {/* 文章标题输入和状态开关 */}
@@ -489,15 +506,32 @@ const EnhancedMarkdownEditor = ({
         </div>
       </div>
 
-      {/* 封面图片URL输入 */}
-      <div>
-        <h3 className="text-lg font-semibold mb-2">封面图片URL</h3>
-        <Input
-          value={coverImage}
-          onChange={(e) => setCoverImage(e.target.value)}
-          placeholder="请输入封面图片的URL地址"
-          className="w-full"
-        />
+      {/* 文章类型选择和封面图片URL输入 */}
+      <div className="flex space-x-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold mb-2">文章类型</h3>
+          <Select
+            value={type}
+            onChange={handleTypeChange}
+            className="w-full"
+            placeholder="请选择文章类型"
+            suffixIcon={<AppstoreOutlined />}
+          >
+            <Option value="technology">软件技术</Option>
+            <Option value="interview">面试经验</Option>
+            <Option value="daily">日常生活</Option>
+            <Option value="algorithm">LeetCode</Option>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold mb-2">封面图片URL</h3>
+          <Input
+            value={coverImage}
+            onChange={(e) => setCoverImage(e.target.value)}
+            placeholder="请输入封面图片的URL地址"
+            className="w-full"
+          />
+        </div>
       </div>
       
       {/* 编辑器工具栏 */}
