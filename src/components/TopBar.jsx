@@ -1,5 +1,5 @@
 'use client'
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BellOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Badge, Dropdown, Tooltip } from 'antd';
 import LoginButton from './LoginButton';
@@ -7,6 +7,14 @@ import { useUser } from '@/contexts/UserContext';
 
 const TopBar = () => {
   const { user } = useUser();
+  const [welcomeMessage, setWelcomeMessage] = useState('欢迎访问');
+  
+  // 在客户端渲染后更新欢迎消息
+  useEffect(() => {
+    if (user) {
+      setWelcomeMessage(`欢迎回来，${user.name}`);
+    }
+  }, [user]);
   
   // 模拟通知数据
   const notifications = [
@@ -32,7 +40,7 @@ const TopBar = () => {
       <div>
         <h1 className="text-xl font-medium">仪表盘</h1>
         <div className="text-sm text-gray-500">
-          {user ? `欢迎回来，${user.name}` : '欢迎访问'}
+          {welcomeMessage}
         </div>
       </div>
 

@@ -8,7 +8,8 @@ import {
   CheckOutlined, 
   CloseOutlined,
   TagsOutlined,
-  FileImageOutlined
+  FileImageOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import MarkdownRenderer from './MarkdownRenderer';
 import '../../styles/markdown-styles.css'; // 导入您的自定义Markdown样式
@@ -420,6 +421,42 @@ const EnhancedMarkdownEditor = ({
     setPreviewVisible(true);
   };
   
+  // 处理重置创建时间
+  const handleResetCreatedTime = async () => {
+    if (!editingId) {
+      message.warning('请先保存文章，才能重置创建时间');
+      return;
+    }
+    
+    Modal.confirm({
+      title: '确认重置创建时间',
+      content: '确定要将此文章的创建时间重置为当前时间吗？此操作不可撤销。',
+      okText: '确定重置',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await fetch(`/api/articles/${editingId}/reset-created-time`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || data.message || '重置创建时间失败');
+          }
+          
+          message.success('文章创建时间已重置为当前时间');
+        } catch (error) {
+          console.error('重置创建时间失败:', error);
+          message.error(`重置失败: ${error.message}`);
+        }
+      }
+    });
+  };
+  
   return (
     <div className="flex flex-col space-y-4">
       {/* 文章标题输入和状态开关 */}
@@ -545,6 +582,14 @@ const EnhancedMarkdownEditor = ({
 
       {/* 操作按钮 */}
       <div className="flex justify-end space-x-4 mt-4">
+        {editingId && (
+          <Button 
+            onClick={handleResetCreatedTime}
+            icon={<HistoryOutlined />}
+          >
+            重置创建时间
+          </Button>
+        )}
         <Button 
           onClick={generateSummaryAndTags}
           icon={<OpenAIIcon />} // 使用自定义的OpenAI图标
