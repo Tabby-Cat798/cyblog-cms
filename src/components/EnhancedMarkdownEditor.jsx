@@ -64,15 +64,39 @@ const EnhancedMarkdownEditor = ({
     
     // 检查URL是否包含"new=true"参数，如果是，则清空存储
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('new') === 'true') {
+    const isNewArticle = urlParams.get('new') === 'true';
+    
+    if (isNewArticle) {
       clearArticleData();
       initialLoadDone.current = true;
       return;
     }
     
-    // 如果提供了初始属性值，优先使用这些值
-    if (initialValue || initialTitle || initialSummary || initialTags || initialCoverImage || initialType || editingArticleId) {
-      // 使用传入的初始值
+    // 获取localStorage中已保存的数据
+    const savedMarkdown = localStorage.getItem("markdownContent");
+    const savedTitle = localStorage.getItem("articleTitle");
+    const savedSummary = localStorage.getItem("articleSummary");
+    const savedTags = localStorage.getItem("articleTags");
+    const savedCoverImage = localStorage.getItem("articleCoverImage");
+    const savedArticleId = localStorage.getItem("editingArticleId");
+    const savedStatus = localStorage.getItem("articleStatus");
+    const savedType = localStorage.getItem("articleType");
+    
+    // 情况1: 正在编辑已有文章，且localStorage中也是同一篇文章的内容
+    if (editingArticleId && savedArticleId === editingArticleId && savedMarkdown) {
+      // 使用localStorage中保存的编辑状态，这样可以恢复上次未保存的编辑
+      setMarkdown(savedMarkdown);
+      setTitle(savedTitle || initialTitle);
+      setSummary(savedSummary || initialSummary);
+      setTags(savedTags || initialTags);
+      setCoverImage(savedCoverImage || initialCoverImage);
+      setStatus(savedStatus || initialStatus);
+      setType(savedType || initialType);
+      setEditingId(editingArticleId);
+    }
+    // 情况2: 正在编辑已有文章，但localStorage中是其他文章或为空
+    else if (editingArticleId) {
+      // 使用从API获取的数据初始化编辑器
       setMarkdown(initialValue);
       setTitle(initialTitle);
       setSummary(initialSummary);
@@ -82,36 +106,39 @@ const EnhancedMarkdownEditor = ({
       setType(initialType);
       setEditingId(editingArticleId);
       
-      // 同时也更新localStorage
-      localStorage.setItem("markdownContent", initialValue);
-      localStorage.setItem("articleTitle", initialTitle);
-      localStorage.setItem("articleSummary", initialSummary);
-      localStorage.setItem("articleTags", initialTags);
-      localStorage.setItem("articleCoverImage", initialCoverImage);
-      localStorage.setItem("articleStatus", initialStatus);
-      localStorage.setItem("articleType", initialType);
-      if (editingArticleId) {
-        localStorage.setItem("editingArticleId", editingArticleId);
-      }
-    } else {
-      // 否则尝试从localStorage中恢复
-      const savedMarkdown = localStorage.getItem("markdownContent");
-      const savedTitle = localStorage.getItem("articleTitle");
-      const savedSummary = localStorage.getItem("articleSummary");
-      const savedTags = localStorage.getItem("articleTags");
-      const savedCoverImage = localStorage.getItem("articleCoverImage");
-      const savedArticleId = localStorage.getItem("editingArticleId");
-      const savedStatus = localStorage.getItem("articleStatus");
-      const savedType = localStorage.getItem("articleType");
-
-      if (savedMarkdown) setMarkdown(savedMarkdown);
-      if (savedTitle) setTitle(savedTitle);
-      if (savedSummary) setSummary(savedSummary);
-      if (savedTags) setTags(savedTags);
-      if (savedCoverImage) setCoverImage(savedCoverImage);
-      if (savedArticleId) setEditingId(savedArticleId);
-      if (savedStatus) setStatus(savedStatus);
-      if (savedType) setType(savedType);
+      // 更新localStorage，保存这篇文章的初始状态
+      localStorage.setItem("markdownContent", initialValue || "");
+      localStorage.setItem("articleTitle", initialTitle || "");
+      localStorage.setItem("articleSummary", initialSummary || "");
+      localStorage.setItem("articleTags", initialTags || "");
+      localStorage.setItem("articleCoverImage", initialCoverImage || "");
+      localStorage.setItem("articleStatus", initialStatus || "published");
+      localStorage.setItem("articleType", initialType || "technology");
+      localStorage.setItem("editingArticleId", editingArticleId);
+    }
+    // 情况3: 创建新文章，localStorage中有未保存的内容
+    else if (!editingArticleId && savedMarkdown) {
+      // 恢复未保存的草稿
+      setMarkdown(savedMarkdown);
+      setTitle(savedTitle || "");
+      setSummary(savedSummary || "");
+      setTags(savedTags || "");
+      setCoverImage(savedCoverImage || "");
+      setStatus(savedStatus || "published");
+      setType(savedType || "technology");
+      setEditingId(savedArticleId); // 如果localStorage有ID，恢复为编辑模式
+    }
+    // 情况4: 全新的文章创建，localStorage中也没有内容
+    else {
+      // 初始化空编辑器
+      setMarkdown("");
+      setTitle("");
+      setSummary("");
+      setTags("");
+      setCoverImage("");
+      setStatus("published");
+      setType("technology");
+      setEditingId(null);
     }
     
     initialLoadDone.current = true;
@@ -186,15 +213,20 @@ const EnhancedMarkdownEditor = ({
       
       // 调用父组件提供的保存方法
       if (onSave) {
-        await onSave(articleData);
-        setHasUnsavedChanges(false);
-        message.success(`文章${editingId ? '更新' : '发布'}成功`);
+        const result = await onSave(articleData);
         
-        // 清空编辑状态
-        clearArticleData();
+        // 如果是新文章，保存返回的ID用于后续编辑
+        if (!editingId && result && result.articleId) {
+          setEditingId(result.articleId);
+          localStorage.setItem("editingArticleId", result.articleId);
+        }
+        
+        // 更新未保存状态
+        setHasUnsavedChanges(false);
+        
+        message.success(`文章${editingId ? '更新' : '发布'}成功`);
       }
     } catch (error) {
-      console.error("发布文章失败", error);
       message.error(`发布失败: ${error.message}`);
     } finally {
       setPublishing(false);
@@ -279,7 +311,6 @@ const EnhancedMarkdownEditor = ({
       message.success('图片上传成功');
       return false; // 阻止默认上传行为
     } catch (error) {
-      console.error('上传图片失败:', error);
       message.error(`上传失败: ${error.message}`);
       return false; // 阻止默认上传行为
     } finally {
@@ -324,8 +355,6 @@ const EnhancedMarkdownEditor = ({
       }
 
       const result = data.result;
-      // 打印GPT返回的原始数据，便于调试
-      console.log('GPT返回的原始数据:', result);
       
       // 需要正确解析返回结果，格式是"标签;摘要"或"标签；摘要"，即先标签后摘要
       if (result.includes(';') || result.includes('；')) {
@@ -344,12 +373,8 @@ const EnhancedMarkdownEditor = ({
         // 移除可能的"摘要："前缀
         generatedSummary = generatedSummary.replace(/^(摘要[:：]\s*)/i, '');
         
-        console.log('处理后的标签 (无前缀):', generatedTags);
-        console.log('处理后的摘要 (无前缀):', generatedSummary);
-        
         // 确保标签中不包含任何分号
         if (generatedTags.includes(';') || generatedTags.includes('；')) {
-          console.warn('警告：标签中包含分号，已自动移除');
           generatedTags = generatedTags.replace(/;|；/g, ',');
         }
         
@@ -360,7 +385,6 @@ const EnhancedMarkdownEditor = ({
         if (generatedTags.endsWith(',')) {
           generatedTags = generatedTags.slice(0, -1);
         }
-
         
         // 设置到表单
         setTags(generatedTags);
@@ -377,14 +401,12 @@ const EnhancedMarkdownEditor = ({
           if (summaryMatch && summaryMatch[1]) setSummary(summaryMatch[1].trim());
         } else {
           // 无法解析，可能需要单独处理
-          message.warning('无法正确解析生成的内容，请检查控制台日志');
-          console.log('API返回的原始内容:', result);
+          message.warning('无法正确解析生成的内容');
         }
       }
       
       message.success("摘要和标签生成成功");
     } catch (error) {
-      console.error('生成摘要和标签失败:', error);
       message.error(`生成失败: ${error.message}`);
       
       // 备用方案：如果API调用失败，使用原来的简单算法生成
@@ -421,7 +443,6 @@ const EnhancedMarkdownEditor = ({
         
         message.info('已使用备用方法生成摘要和标签');
       } catch (backupError) {
-        console.error('备用生成方法也失败:', backupError);
         message.error('自动生成失败，请手动填写');
       }
     }
@@ -461,7 +482,6 @@ const EnhancedMarkdownEditor = ({
           
           message.success('文章创建时间已重置为当前时间');
         } catch (error) {
-          console.error('重置创建时间失败:', error);
           message.error(`重置失败: ${error.message}`);
         }
       }
