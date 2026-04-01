@@ -19,14 +19,13 @@ export async function POST(request, props) {
       );
     }
     
-    // 获取北京时间
+    // 获取当前时间
     const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
     
     // 更新文章创建时间
     const result = await db.collection('articles').updateOne(
       { _id: new ObjectId(id) },
-      { $set: { createdAt: beijingTime } }
+      { $set: { createdAt: now } }
     );
     
     if (result.matchedCount === 0) {
@@ -56,7 +55,7 @@ export async function POST(request, props) {
 
     return NextResponse.json({ 
       message: '文章创建时间已重置',
-      newCreatedAt: beijingTime
+      newCreatedAt: now
     });
   } catch (error) {
     console.error('重置文章创建时间失败:', error);
