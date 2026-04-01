@@ -310,3 +310,14 @@
 :target {
   scroll-margin-top: 100px;
 }
+
+/* 关闭编辑器内的语法高亮渲染，但保留其占位以维持滚动同步功能 */
+.w-md-editor-text-pre {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.w-md-editor-text-input {
+  -webkit-text-fill-color: inherit !important;
+  color: inherit !important;
+}
