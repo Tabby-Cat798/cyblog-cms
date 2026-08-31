@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { revalidateFrontend } from '@/lib/revalidate';
+import { normalizeArticleType } from '@/lib/article-types';
 
 // 获取单篇文章
 export async function GET(request, props) {
@@ -61,7 +62,7 @@ export async function PUT(request, props) {
           updatedAt: new Date().toISOString(),
           coverImage: body.coverImage || '',
           status: body.status || 'published',  // 添加状态字段，默认为已发布
-          type: body.type || 'technology'      // 添加文章类型字段，默认为技术类
+          type: normalizeArticleType(body.type)
         },
       }
     );

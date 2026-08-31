@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { revalidateFrontend } from '@/lib/revalidate';
+import { normalizeArticleType } from '@/lib/article-types';
 
 export async function POST(request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request) {
       content: body.content,
       viewCount: body.viewCount || 0,
       status: body.status || 'published',
-      type: body.type || 'technology',
+      type: normalizeArticleType(body.type),
       createdAt: beijingTime,
       coverImage: body.coverImage || ''
     };

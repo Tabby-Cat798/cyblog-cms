@@ -13,6 +13,7 @@ import {
   AppstoreOutlined
 } from '@ant-design/icons';
 import MarkdownRenderer from './MarkdownRenderer';
+import { normalizeArticleType } from '@/lib/article-types';
 import '../../styles/markdown-styles.css'; // 导入您的自定义Markdown样式
 
 // 自定义OpenAI图标组件
@@ -45,7 +46,7 @@ const EnhancedMarkdownEditor = ({
   const [tags, setTags] = useState(initialTags);
   const [status, setStatus] = useState(initialStatus);
   const [coverImage, setCoverImage] = useState(initialCoverImage);
-  const [type, setType] = useState(initialType);
+  const [type, setType] = useState(normalizeArticleType(initialType));
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -91,7 +92,7 @@ const EnhancedMarkdownEditor = ({
       setTags(savedTags || initialTags);
       setCoverImage(savedCoverImage || initialCoverImage);
       setStatus(savedStatus || initialStatus);
-      setType(savedType || initialType);
+      setType(normalizeArticleType(savedType || initialType));
       setEditingId(editingArticleId);
     }
     // 情况2: 正在编辑已有文章，但localStorage中是其他文章或为空
@@ -103,7 +104,7 @@ const EnhancedMarkdownEditor = ({
       setTags(initialTags);
       setCoverImage(initialCoverImage);
       setStatus(initialStatus);
-      setType(initialType);
+      setType(normalizeArticleType(initialType));
       setEditingId(editingArticleId);
       
       // 更新localStorage，保存这篇文章的初始状态
@@ -113,7 +114,7 @@ const EnhancedMarkdownEditor = ({
       localStorage.setItem("articleTags", initialTags || "");
       localStorage.setItem("articleCoverImage", initialCoverImage || "");
       localStorage.setItem("articleStatus", initialStatus || "published");
-      localStorage.setItem("articleType", initialType || "technology");
+      localStorage.setItem("articleType", normalizeArticleType(initialType));
       localStorage.setItem("editingArticleId", editingArticleId);
     }
     // 情况3: 创建新文章，localStorage中有未保存的内容
@@ -125,7 +126,7 @@ const EnhancedMarkdownEditor = ({
       setTags(savedTags || "");
       setCoverImage(savedCoverImage || "");
       setStatus(savedStatus || "published");
-      setType(savedType || "technology");
+      setType(normalizeArticleType(savedType));
       setEditingId(savedArticleId); // 如果localStorage有ID，恢复为编辑模式
     }
     // 情况4: 全新的文章创建，localStorage中也没有内容
@@ -539,7 +540,7 @@ const EnhancedMarkdownEditor = ({
           >
             <Option value="technology">软件技术</Option>
             <Option value="interview">面试经验</Option>
-            <Option value="daily">日常生活</Option>
+            <Option value="private">个人文档</Option>
             <Option value="algorithm">LeetCode</Option>
           </Select>
         </div>

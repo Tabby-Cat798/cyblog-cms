@@ -7,6 +7,7 @@ import { Spin, message, Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import EnhancedMarkdownEditor from '../../components/EnhancedMarkdownEditor';
+import { normalizeArticleType } from '@/lib/article-types';
 
 // 包装组件，处理参数和加载文章
 function EditorContent() {
@@ -117,7 +118,7 @@ function EditorContent() {
               initialTags={article?.tags ? article.tags.join(',') : ''}
               initialStatus={article?.status || 'published'}
               initialCoverImage={article?.coverImage || ''}
-              initialType={article?.type || 'technology'}
+              initialType={normalizeArticleType(article?.type)}
               editingArticleId={editingArticleId}
               onSave={handleSaveArticle}
             />

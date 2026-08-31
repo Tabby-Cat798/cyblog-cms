@@ -6,6 +6,7 @@ import TopBar from '../../components/TopBar';
 import '@ant-design/v5-patch-for-react-19';
 import { Table, Button, Input, Space, Tag, Spin, Modal, message } from 'antd';
 import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined, CommentOutlined } from '@ant-design/icons';
+import { getArticleTypeLabel, normalizeArticleType } from '@/lib/article-types';
 
 export default function PostsPage() {
   const router = useRouter();
@@ -144,6 +145,16 @@ export default function PostsPage() {
       render: (status) => (
         <Tag color={status === 'published' ? 'green' : 'orange'}>
           {status === 'published' ? '已发布' : '草稿'}
+        </Tag>
+      ),
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => (
+        <Tag color={normalizeArticleType(type) === 'private' ? 'purple' : 'blue'}>
+          {getArticleTypeLabel(type)}
         </Tag>
       ),
     },
